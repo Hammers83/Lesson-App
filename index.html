@@ -3,104 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZUMBA con Angelo | Accesso</title>
-    
+    <title>ZUMBA con Angelo | Accedi o Registrati</title>
+
+    <!-- PWA & Mobile Meta Tags -->
+    <meta name="theme-color" content="#0B0F19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zumba Angelo">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2964/2964514.png">
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: { lime: '#CCFF00', cyan: '#00E5FF', pink: '#FF007F', dark: '#0B0F19', card: '#131927', border: '#202A40' }
+                        brand: { 
+                            lime: '#CCFF00', 
+                            cyan: '#00E5FF', 
+                            pink: '#FF007F', 
+                            dark: '#0B0F19', 
+                            card: '#131927', 
+                            border: '#202A40' 
+                        }
                     }
                 }
             }
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- FontAwesome & Custom CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .glass-panel {
+            background: rgba(19, 25, 39, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid #202A40;
+        }
+        .fitness-text-gradient {
+            background: linear-gradient(135deg, #00E5FF 0%, #CCFF00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .btn-gradient {
+            background: linear-gradient(135deg, #00E5FF 0%, #CCFF00 100%);
+        }
+    </style>
+
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-brand-dark text-gray-100 font-sans min-h-screen flex flex-col justify-between antialiased">
 
-    <!-- BANNER PWA STANDARD -->
-    <div id="pwa-install-banner" class="hidden fixed top-0 left-0 right-0 z-50 p-3 bg-gradient-to-r from-brand-lime via-brand-cyan to-brand-pink text-black shadow-2xl">
-        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-            <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-bolt text-2xl animate-bounce"></i>
-                <div>
-                    <p class="font-extrabold text-sm sm:text-base">Aggiungi ZUMBA con Angelo alla Schermata Home!</p>
-                    <p class="text-xs text-black/80">Accedi rapidamente alle tue lezioni con un solo clic.</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-2 w-full sm:w-auto">
-                <button id="pwa-install-btn" class="flex-1 sm:flex-none px-4 py-1.5 bg-black text-brand-lime font-extrabold text-xs rounded-full shadow hover:bg-gray-900 transition">
-                    Aggiungi ora
-                </button>
-                <button onclick="dismissPwaBanner()" class="px-2 py-1 text-black/70 hover:text-black text-xs">
-                    <i class="fa-solid fa-xmark text-base"></i>
-                </button>
-            </div>
+    <!-- BANNER INSTALLAZIONE PWA (PC / ANDROID) -->
+    <div id="pwa-install-banner" class="hidden bg-gradient-to-r from-brand-cyan to-brand-lime text-black px-4 py-3 font-bold flex items-center justify-between shadow-xl z-50">
+        <div class="flex items-center gap-2 text-xs sm:text-sm">
+            <i class="fa-solid fa-mobile-screen-button text-lg"></i>
+            <span>Installa l'App sul tuo Smartphone o PC per un accesso rapido!</span>
         </div>
+        <button id="btn-pwa-install" class="bg-brand-dark text-white text-xs px-4 py-2 rounded-xl font-black uppercase hover:opacity-90 transition">
+            Installa
+        </button>
     </div>
 
-    <!-- BANNER SAFARI IPHONE -->
-    <div id="ios-install-banner" class="hidden fixed bottom-4 left-4 right-4 z-50 p-4 bg-brand-card/95 border border-brand-cyan/40 rounded-2xl text-white shadow-2xl backdrop-blur-md">
-        <div class="flex items-start justify-between gap-3">
-            <div class="flex items-start space-x-3">
-                <i class="fa-solid fa-mobile-screen-button text-2xl text-brand-cyan mt-1"></i>
-                <div>
-                    <p class="font-bold text-sm text-white">Installa su iPhone:</p>
-                    <p class="text-xs text-gray-300 mt-1">
-                        1. Tocca l'icona <b class="text-brand-cyan">Condividi</b> <i class="fa-solid fa-share-from-square text-brand-cyan"></i> in basso su Safari.<br>
-                        2. Scorri e seleziona <b class="text-brand-lime">"Aggiungi alla schermata Home"</b>.
-                    </p>
-                </div>
-            </div>
-            <button onclick="dismissIosBanner()" class="text-gray-400 hover:text-white p-1">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- NAVBAR -->
-    <nav class="glass-panel border-b border-brand-border">
+    <!-- NAVBAR HEADER -->
+    <nav class="sticky top-0 z-40 glass-panel border-b border-brand-border">
         <div class="max-w-7xl mx-auto px-4 py-3.5 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl btn-gradient flex items-center justify-center shadow-lg shadow-brand-lime/20">
+                <div class="w-10 h-10 rounded-xl btn-gradient flex items-center justify-center">
                     <i class="fa-solid fa-bolt text-black text-xl"></i>
                 </div>
-                <span class="text-xl font-black tracking-wider uppercase text-white">ZUMBA <span class="fitness-text-gradient">con Angelo</span></span>
+                <span class="text-xl font-black uppercase text-white">ZUMBA <span class="fitness-text-gradient">con Angelo</span></span>
             </div>
         </div>
     </nav>
 
-    <!-- FORM DI ACCESSO / REGISTRAZIONE -->
-    <main class="flex-grow flex items-center justify-center px-4 py-8">
+    <!-- MAIN CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-8 flex flex-col items-center justify-center space-y-6">
+
+        <!--
+         <!-- SCHEDA IN EVIDENZA 
+        <div class="max-w-md w-full glass-panel p-4 rounded-3xl border-l-4 border-l-brand-cyan flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-2xl bg-brand-cyan/20 border border-brand-cyan/40 flex items-center justify-center text-brand-cyan text-xl">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <div>
+                    <span class="text-[10px] uppercase font-black text-brand-lime tracking-widest">Corso Attivo</span>
+                    <h3 class="text-base font-black text-white uppercase">Zumba Fitness</h3>
+                    <p class="text-xs text-gray-400">Istruttore: <span class="text-white font-bold">Angelo</span></p>
+                </div>
+            </div>
+            <span class="px-3 py-1 bg-brand-dark border border-brand-border text-brand-cyan text-xs font-black rounded-xl uppercase">
+                Lunedì &amp; Mercoledì
+            </span>
+        </div> 
+        -->
+        
+        <!-- AUTH CARD FORM -->
         <div class="max-w-md w-full glass-panel p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
             <div class="text-center mb-6">
-                <h2 class="text-3xl font-black uppercase tracking-tight text-white">Workout <span class="fitness-text-gradient">Zone</span></h2>
-                <p id="auth-subtitle" class="text-xs text-gray-400 mt-1">Accedi per gestire le tue lezioni</p>
+                <h2 id="form-header-title" class="text-2xl font-black uppercase text-white">Accedi</h2>
+                <p id="auth-subtitle" class="text-xs text-gray-400 mt-1">Inserisci le tue credenziali per accedere</p>
             </div>
-    
+
             <form id="auth-form" class="space-y-4">
-                <!-- CAMPI DINAMICI GENERATI DA JAVASCRIPT -->
                 <div id="form-fields-container" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
-                        <input type="email" id="auth-email" required class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
-                        <input type="password" id="auth-password" required class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
-                    </div>
+                    <!-- I campi vengono renderizzati via JS -->
                 </div>
-    
-                <button type="submit" id="auth-submit-btn" class="w-full py-3.5 btn-gradient text-black font-black uppercase tracking-wider text-sm rounded-xl shadow-lg hover:opacity-95 transition active:scale-95">
+
+                <button type="submit" id="auth-submit-btn" class="w-full py-3.5 btn-gradient text-black font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition hover:opacity-90 active:scale-95">
                     Entra
                 </button>
             </form>
-    
+
             <div class="mt-6 text-center pt-4 border-t border-brand-border">
                 <p id="auth-switch-text" class="text-xs text-gray-400">
                     Non hai un account? 
@@ -108,10 +125,54 @@
                 </p>
             </div>
         </div>
+
+        <!-- ISTRUZIONI INSTALLAZIONE IPHONE (iOS) -->
+        <div id="ios-install-instructions" class="hidden max-w-md w-full glass-panel p-4 rounded-2xl text-xs text-gray-300 text-center border border-brand-border">
+            <p class="font-bold text-white mb-1"><i class="fa-solid fa-arrow-up-from-bracket text-brand-cyan"></i> Per installare su iPhone/iPad:</p>
+            Premi il tasto <span class="text-brand-lime font-bold">Condividi</span> su Safari e seleziona <span class="text-brand-lime font-bold">"Aggiungi alla schermata Home"</span>.
+        </div>
+
     </main>
 
+    <!-- FOOTER -->
+    <footer class="py-4 text-center text-xs text-gray-500 border-t border-brand-border">
+        &copy; ZUMBA con Angelo. Tutti i diritti riservati.
+    </footer>
+
+    <!-- JS SCRIPTS -->
     <script src="js/config.js"></script>
-    <script src="js/pwa.js"></script>
     <script src="js/auth.js"></script>
+
+    <!-- PWA Installation Script -->
+    <script>
+        let deferredPrompt;
+        const pwaBanner = document.getElementById('pwa-install-banner');
+        const btnPwaInstall = document.getElementById('btn-pwa-install');
+        const iosInstructions = document.getElementById('ios-install-instructions');
+
+        const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+
+        if (isIos && !isStandalone) {
+            iosInstructions.classList.remove('hidden');
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            pwaBanner.classList.remove('hidden');
+        });
+
+        btnPwaInstall.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    pwaBanner.classList.add('hidden');
+                }
+                deferredPrompt = null;
+            }
+        });
+    </script>
 </body>
 </html>
