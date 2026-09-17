@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZUMBA con Angelo | Pannello Istruttore</title>
-
+    <title>ZUMBA con Angelo | Accesso</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -18,83 +18,100 @@
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-brand-dark text-gray-100 font-sans min-h-screen flex flex-col antialiased">
+<body class="bg-brand-dark text-gray-100 font-sans min-h-screen flex flex-col justify-between antialiased">
+
+    <!-- BANNER PWA STANDARD -->
+    <div id="pwa-install-banner" class="hidden fixed top-0 left-0 right-0 z-50 p-3 bg-gradient-to-r from-brand-lime via-brand-cyan to-brand-pink text-black shadow-2xl">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-bolt text-2xl animate-bounce"></i>
+                <div>
+                    <p class="font-extrabold text-sm sm:text-base">Aggiungi ZUMBA con Angelo alla Schermata Home!</p>
+                    <p class="text-xs text-black/80">Accedi rapidamente alle tue lezioni con un solo clic.</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 w-full sm:w-auto">
+                <button id="pwa-install-btn" class="flex-1 sm:flex-none px-4 py-1.5 bg-black text-brand-lime font-extrabold text-xs rounded-full shadow hover:bg-gray-900 transition">
+                    Aggiungi ora
+                </button>
+                <button onclick="dismissPwaBanner()" class="px-2 py-1 text-black/70 hover:text-black text-xs">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BANNER SAFARI IPHONE -->
+    <div id="ios-install-banner" class="hidden fixed bottom-4 left-4 right-4 z-50 p-4 bg-brand-card/95 border border-brand-cyan/40 rounded-2xl text-white shadow-2xl backdrop-blur-md">
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start space-x-3">
+                <i class="fa-solid fa-mobile-screen-button text-2xl text-brand-cyan mt-1"></i>
+                <div>
+                    <p class="font-bold text-sm text-white">Installa su iPhone:</p>
+                    <p class="text-xs text-gray-300 mt-1">
+                        1. Tocca l'icona <b class="text-brand-cyan">Condividi</b> <i class="fa-solid fa-share-from-square text-brand-cyan"></i> in basso su Safari.<br>
+                        2. Scorri e seleziona <b class="text-brand-lime">"Aggiungi alla schermata Home"</b>.
+                    </p>
+                </div>
+            </div>
+            <button onclick="dismissIosBanner()" class="text-gray-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+    </div>
 
     <!-- NAVBAR -->
-    <nav class="sticky top-0 z-40 glass-panel border-b border-brand-border">
+    <nav class="glass-panel border-b border-brand-border">
         <div class="max-w-7xl mx-auto px-4 py-3.5 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl btn-gradient flex items-center justify-center">
+                <div class="w-10 h-10 rounded-xl btn-gradient flex items-center justify-center shadow-lg shadow-brand-lime/20">
                     <i class="fa-solid fa-bolt text-black text-xl"></i>
                 </div>
-                <span class="text-xl font-black uppercase text-white">ZUMBA <span class="fitness-text-gradient">con Angelo</span></span>
+                <span class="text-xl font-black tracking-wider uppercase text-white">ZUMBA <span class="fitness-text-gradient">con Angelo</span></span>
             </div>
-            <div id="nav-links" class="flex items-center space-x-3"></div>
         </div>
     </nav>
 
-    <!-- MAIN DASHBOARD -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 space-y-8">
-        <div class="glass-panel p-6 rounded-3xl flex justify-between items-center border-l-4 border-l-brand-cyan">
-            <div>
-                <h2 class="text-2xl font-black uppercase text-white">Pannello Istruttore</h2>
-                <p class="text-xs text-gray-400">Analisi e gestione dei corsi e delle allieve</p>
+    <!-- FORM DI ACCESSO / REGISTRAZIONE -->
+    <main class="flex-grow flex items-center justify-center px-4 py-8">
+        <div class="max-w-md w-full glass-panel p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-black uppercase tracking-tight text-white">Workout <span class="fitness-text-gradient">Zone</span></h2>
+                <p id="auth-subtitle" class="text-xs text-gray-400 mt-1">Accedi per gestire le tue lezioni</p>
             </div>
-            <span class="px-3 py-1 bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 text-xs font-black rounded-full uppercase tracking-widest">Admin Angelo</span>
-        </div>
-
-        <!-- GRAFICI ANALYTICS -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="glass-panel p-6 rounded-3xl">
-                <h4 class="text-sm font-bold uppercase text-gray-300 mb-4">Presenze per Sessione</h4>
-                <div class="relative h-64 w-full">
-                    <canvas id="chart-presenze"></canvas>
+    
+            <form id="auth-form" class="space-y-4">
+                <!-- CAMPI DINAMICI GENERATI DA JAVASCRIPT -->
+                <div id="form-fields-container" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
+                        <input type="email" id="auth-email" required class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
+                        <input type="password" id="auth-password" required class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                    </div>
                 </div>
-            </div>
-            <div class="glass-panel p-6 rounded-3xl">
-                <h4 class="text-sm font-bold uppercase text-gray-300 mb-4">Stato Certificati Medici</h4>
-                <div class="relative h-64 w-full flex justify-center">
-                    <canvas id="chart-certificati"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- FORM CREAZIONE LEZIONE -->
-        <div class="glass-panel p-6 rounded-3xl">
-            <h3 class="text-lg font-black uppercase text-white mb-4">Programma Nuova Lezione</h3>
-            <form id="form-create-lesson" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <input type="text" id="lesson-title" placeholder="Es. Zumba Fitness / Toning" required class="px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm">
-                <input type="datetime-local" id="lesson-datetime" required class="px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm">
-                <input type="number" id="lesson-capacity" value="20" min="1" required class="px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm">
-                <button type="submit" class="py-3 btn-gradient text-black font-black uppercase text-xs rounded-xl shadow-lg">Pubblica Lezione</button>
+    
+                <button type="submit" id="auth-submit-btn" class="w-full py-3.5 btn-gradient text-black font-black uppercase tracking-wider text-sm rounded-xl shadow-lg hover:opacity-95 transition active:scale-95">
+                    Entra
+                </button>
             </form>
-        </div>
-
-        <!-- TABELLA ALLIEVE -->
-        <div class="glass-panel p-6 rounded-3xl">
-            <h3 class="text-lg font-black uppercase text-white mb-4">Anagrafica Allieve</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-brand-border text-xs font-bold text-gray-400 uppercase">
-                            <th class="py-3 px-2">Foto</th>
-                            <th class="py-3 px-2">Allieva</th>
-                            <th class="py-3 px-2">Contatti</th>
-                            <th class="py-3 px-2">Scadenza Cert.</th>
-                            <th class="py-3 px-2">Documento</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-students-body" class="divide-y divide-brand-border text-sm"></tbody>
-                </table>
+    
+            <div class="mt-6 text-center pt-4 border-t border-brand-border">
+                <p id="auth-switch-text" class="text-xs text-gray-400">
+                    Non hai un account? 
+                    <button type="button" id="btn-toggle-auth" class="text-brand-lime font-bold hover:underline ml-1">Registrati</button>
+                </p>
             </div>
         </div>
     </main>
 
-    <script src="../js/config.js"></script>
-    <script src="../js/admin.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/pwa.js"></script>
+    <script src="js/auth.js"></script>
 </body>
 </html>
