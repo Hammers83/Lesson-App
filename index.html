@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Zumba Pulse | Fitness & Class Manager</title>
     
-    <!-- Meta tag PWA -->
+    <!-- Meta tag PWA per iOS -->
     <meta name="theme-color" content="#CCFF00">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -54,13 +54,13 @@
 </head>
 <body class="bg-brand-dark text-gray-100 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-lime selection:text-black">
 
-    <!-- BANNER PER CREARE IL COLLEGAMENTO SUL DESKTOP / APP -->
+    <!-- BANNER PWA STANDARD (Android / Desktop) -->
     <div id="pwa-install-banner" class="hidden fixed top-0 left-0 right-0 z-50 p-3 bg-gradient-to-r from-brand-lime via-brand-cyan to-brand-pink text-black shadow-2xl transition-all duration-300">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
             <div class="flex items-center space-x-3">
                 <i class="fa-solid fa-bolt text-2xl animate-bounce"></i>
                 <div>
-                    <p class="font-extrabold text-sm sm:text-base">Aggiungi Zumba Pulse al tuo Desktop!</p>
+                    <p class="font-extrabold text-sm sm:text-base">Aggiungi Zumba Pulse alla Schermata Home!</p>
                     <p class="text-xs text-black/80">Accedi rapidamente alle tue lezioni con un solo clic.</p>
                 </div>
             </div>
@@ -72,6 +72,25 @@
                     <i class="fa-solid fa-xmark text-base"></i>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- BANNER DEDICATO A SAFARI IPHONE (iOS) -->
+    <div id="ios-install-banner" class="hidden fixed bottom-4 left-4 right-4 z-50 p-4 bg-brand-card/95 border border-brand-cyan/40 rounded-2xl text-white shadow-2xl backdrop-blur-md transition-all duration-300">
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start space-x-3">
+                <i class="fa-solid fa-mobile-screen-button text-2xl text-brand-cyan mt-1"></i>
+                <div>
+                    <p class="font-bold text-sm text-white">Installa su iPhone:</p>
+                    <p class="text-xs text-gray-300 mt-1">
+                        1. Tocca l'icona <b class="text-brand-cyan">Condividi</b> <i class="fa-solid fa-share-from-square text-brand-cyan"></i> in basso su Safari.<br>
+                        2. Scorri e seleziona <b class="text-brand-lime">"Aggiungi alla schermata Home"</b>.
+                    </p>
+                </div>
+            </div>
+            <button onclick="dismissIosBanner()" class="text-gray-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
         </div>
     </div>
 
@@ -217,6 +236,16 @@
     <script src="app.js"></script>
     <script>
         let deferredPrompt;
+
+        // RILEVAZIONE DISPOSITIVO E BROWSER
+        const isIos = () => {
+            const userAgent = window.navigator.userAgent.toLowerCase();
+            return /iphone|ipad|ipod/.test(userAgent);
+        };
+
+        const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+
+        // GESTIONE BANNER ANDROID / DESKTOP
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -240,6 +269,19 @@
             const banner = document.getElementById('pwa-install-banner');
             if (banner) banner.classList.add('hidden');
         }
+
+        function dismissIosBanner() {
+            const banner = document.getElementById('ios-install-banner');
+            if (banner) banner.classList.add('hidden');
+        }
+
+        // MOSTRA ISTRUZIONI SAFARI IPHONE SE NON È GIÀ INSTALLATA
+        document.addEventListener('DOMContentLoaded', () => {
+            if (isIos() && !isInStandaloneMode()) {
+                const iosBanner = document.getElementById('ios-install-banner');
+                if (iosBanner) iosBanner.classList.remove('hidden');
+            }
+        });
     </script>
 </body>
 </html>
