@@ -1,6 +1,6 @@
 // CONFIGURAZIONE SUPABASE
-const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co"; // Sostituisci
-const SUPABASE_ANON_KEY = "YOUR_ANON_KEY";                 // Sostituisci
+const SUPABASE_URL = "https://aatelpatdppxdehbsxmz.supabase.co/rest/v1/"; 
+const SUPABASE_ANON_KEY = "sb_publishable_dA9nfW05M1BFCdjRwkWRMA_XM_SxPuV"; 
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
