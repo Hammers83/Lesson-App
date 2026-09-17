@@ -1,7 +1,6 @@
 let isLoginMode = true;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Gestione dei click (Event Delegation per evitare problemi di listener)
     document.addEventListener('click', (e) => {
         if (e.target && e.target.id === 'btn-toggle-auth') {
             e.preventDefault();
@@ -15,24 +14,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         authForm.addEventListener('submit', handleAuthSubmit);
     }
 
-    // Renderizza il form iniziale (Login di default)
     renderAuthForm();
 
-    // Controlla la sessione utente in background
+    // Verifico la sessione Supabase attiva all'avvio
     try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single();
-            if (profile) {
-                window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
+        if (typeof supabase !== 'undefined' && supabase.auth) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('is_admin')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (profile) {
+                    window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
+                }
             }
         }
     } catch (err) {
-        console.error("Errore durante la verifica della sessione:", err);
+        console.error("Errore verifica sessione:", err);
     }
 });
 
 function renderAuthForm() {
+    const headerTitle = document.getElementById('form-header-title');
     const subtitle = document.getElementById('auth-subtitle');
     const submitBtn = document.getElementById('auth-submit-btn');
     const switchText = document.getElementById('auth-switch-text');
@@ -44,7 +50,8 @@ function renderAuthForm() {
     if (existingError) existingError.remove();
 
     if (isLoginMode) {
-        subtitle.innerText = "Accedi per gestire le tue lezioni";
+        headerTitle.innerText = "Accedi";
+        subtitle.innerText = "Inserisci le tue credenziali per accedere";
         submitBtn.innerText = "Entra";
         switchText.innerHTML = `Non hai un account? <button type="button" id="btn-toggle-auth" class="text-brand-lime font-bold hover:underline ml-1">Registrati</button>`;
         
@@ -59,8 +66,9 @@ function renderAuthForm() {
             </div>
         `;
     } else {
-        subtitle.innerText = "Inserisci i tuoi dati per registrarti";
-        submitBtn.innerText = "Completa Iscrizione";
+        headerTitle.innerText = "Registrazione Allieva";
+        subtitle.innerText = "Iscriviti per accedere ai corsi di Zumba con Angelo";
+        submitBtn.innerText = "Completa Registrazione";
         switchText.innerHTML = `Hai già un account? <button type="button" id="btn-toggle-auth" class="text-brand-cyan font-bold hover:underline ml-1">Accedi</button>`;
         
         container.innerHTML = `
@@ -75,20 +83,20 @@ function renderAuthForm() {
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Data di Nascita</label>
-                    <input type="date" id="signup-data-nascita" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Telefono</label>
-                    <input type="tel" id="signup-telefono" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
-                </div>
+            <!-- Data di nascita disposta sopra al Telefono -->
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Data di Nascita</label>
+                <input type="date" id="signup-data-nascita" required class="w-full px-4 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Telefono</label>
+                <input type="tel" id="signup-telefono" required placeholder="+39 333 0000000" class="w-full px-4 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
-                <input type="email" id="auth-email" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                <input type="email" id="auth-email" required class="w-full px-4 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -119,11 +127,20 @@ async function handleLogin() {
     const password = document.getElementById('auth-password').value;
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return showAuthError("Credenziali errate o utente inesistente.");
+    if (error) {
+        return showAuthError("Credenziali non valide o utente inesistente.");
+    }
 
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', data.user.id).single();
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', data.user.id)
+        .single();
+
     if (profile) {
         window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
+    } else {
+        window.location.href = 'pages/dashboard-student.html';
     }
 }
 
@@ -142,25 +159,42 @@ async function handleSignup() {
     const dataNascita = document.getElementById('signup-data-nascita').value;
     const telefono = document.getElementById('signup-telefono').value.trim();
 
-    // 1. Registrazione dell'utente su Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-    if (authError) return showAuthError(authError.message);
-
-    const userId = authData.user.id;
-
-    // 2. Inserimento del profilo nel database
-    const { error: profileError } = await supabase.from('profiles').insert([{
-        id: userId,
-        nome: nome,
-        cognome: cognome,
-        data_nascita: dataNascita,
-        telefono: telefono,
+    // 1. Registrazione dell'utente in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email,
-        is_admin: false
-    }]);
+        password: password,
+        options: {
+            data: {
+                nome: nome,
+                cognome: cognome
+            }
+        }
+    });
+
+    if (authError) {
+        return showAuthError(authError.message);
+    }
+
+    if (!authData.user) {
+        return showAuthError("Errore durante la creazione dell'utente.");
+    }
+
+    // 2. Inserimento record nella tabella "profiles"
+    const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert([{
+            id: authData.user.id,
+            nome: nome,
+            cognome: cognome,
+            data_nascita: dataNascita,
+            telefono: telefono,
+            email: email,
+            is_admin: false
+        }]);
 
     if (profileError) {
-        showAuthError("Errore durante il salvataggio del profilo.");
+        console.error("Errore salvataggio profilo:", profileError);
+        showAuthError("Registrazione Auth eseguita, ma errore nel profilo: " + profileError.message);
         return;
     }
 
