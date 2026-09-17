@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Zumba Pulse | Fitness & Class Manager</title>
     
-    <!-- Meta tag PWA per installazione su Desktop/Mobile -->
-    <meta name="theme-color" content="#FF0055">
+    <!-- Meta tag PWA per installazione Desktop/Mobile -->
+    <meta name="theme-color" content="#CCFF00">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ZumbaPulse">
@@ -20,12 +20,12 @@
                 extend: {
                     colors: {
                         brand: {
-                            pink: '#FF0055',
-                            orange: '#FF5500',
-                            purple: '#7928CA',
-                            dark: '#0F1117',
-                            card: '#181B25',
-                            border: '#2A2E3D'
+                            lime: '#CCFF00',    /* Verde Lime Neon */
+                            cyan: '#00E5FF',    /* Azzurro Ciano */
+                            pink: '#FF007F',    /* Rosa Magenta */
+                            dark: '#0B0F19',    /* Sfondo Scurissimo */
+                            card: '#131927',    /* Sfondo Schede */
+                            border: '#202A40'   /* Bordi */
                         }
                     }
                 }
@@ -38,36 +38,37 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        .fitness-gradient { background: linear-gradient(135deg, #FF0055 0%, #FF5500 50%, #7928CA 100%); }
+        .fitness-gradient { background: linear-gradient(135deg, #CCFF00 0%, #00E5FF 50%, #FF007F 100%); }
+        .btn-gradient { background: linear-gradient(135deg, #CCFF00 0%, #00E5FF 100%); }
         .fitness-text-gradient {
-            background: linear-gradient(135deg, #FF0055 0%, #FF5500 100%);
+            background: linear-gradient(135deg, #CCFF00 0%, #00E5FF 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         .glass-panel {
-            background: rgba(24, 27, 37, 0.75);
+            background: rgba(19, 25, 39, 0.8);
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
     </style>
 </head>
-<body class="bg-brand-dark text-gray-100 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-pink selection:text-white">
+<body class="bg-brand-dark text-gray-100 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-lime selection:text-black">
 
     <!-- BANNER PER CREARE IL COLLEGAMENTO SUL DESKTOP / APP -->
-    <div id="pwa-install-banner" class="hidden fixed top-0 left-0 right-0 z-50 p-3 bg-gradient-to-r from-brand-pink to-brand-orange text-white shadow-2xl transition-all duration-300">
+    <div id="pwa-install-banner" class="hidden fixed top-0 left-0 right-0 z-50 p-3 bg-gradient-to-r from-brand-lime via-brand-cyan to-brand-pink text-black shadow-2xl transition-all duration-300">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
             <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-fire text-2xl animate-bounce"></i>
+                <i class="fa-solid fa-bolt text-2xl animate-bounce"></i>
                 <div>
                     <p class="font-extrabold text-sm sm:text-base">Aggiungi Zumba Pulse al tuo Desktop!</p>
-                    <p class="text-xs text-white/80">Accedi rapidamente alle tue lezioni con un solo clic.</p>
+                    <p class="text-xs text-black/80">Accedi rapidamente alle tue lezioni con un solo clic.</p>
                 </div>
             </div>
             <div class="flex items-center space-x-2 w-full sm:w-auto">
-                <button id="pwa-install-btn" class="flex-1 sm:flex-none px-4 py-1.5 bg-white text-brand-pink font-extrabold text-xs rounded-full shadow hover:bg-gray-100 transition">
+                <button id="pwa-install-btn" class="flex-1 sm:flex-none px-4 py-1.5 bg-black text-brand-lime font-extrabold text-xs rounded-full shadow hover:bg-gray-900 transition">
                     Aggiungi ora
                 </button>
-                <button onclick="dismissPwaBanner()" class="px-2 py-1 text-white/70 hover:text-white text-xs">
+                <button onclick="dismissPwaBanner()" class="px-2 py-1 text-black/70 hover:text-black text-xs">
                     <i class="fa-solid fa-xmark text-base"></i>
                 </button>
             </div>
@@ -78,8 +79,8 @@
     <nav class="sticky top-0 z-40 glass-panel border-b border-brand-border">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl fitness-gradient flex items-center justify-center shadow-lg shadow-brand-pink/30">
-                    <i class="fa-solid fa-bolt text-white text-xl"></i>
+                <div class="w-10 h-10 rounded-xl btn-gradient flex items-center justify-center shadow-lg shadow-brand-lime/20">
+                    <i class="fa-solid fa-bolt text-black text-xl"></i>
                 </div>
                 <span class="text-xl font-black tracking-wider uppercase text-white">Zumba<span class="fitness-text-gradient">Pulse</span></span>
             </div>
@@ -93,7 +94,7 @@
         <!-- AUTHENTICATION (LOGIN / REGISTRAZIONE) -->
         <section id="auth-section" class="max-w-md mx-auto my-6 sm:my-12">
             <div class="glass-panel p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-                <div class="absolute -top-24 -right-24 w-48 h-48 fitness-gradient rounded-full blur-3xl opacity-30"></div>
+                <div class="absolute -top-24 -right-24 w-48 h-48 fitness-gradient rounded-full blur-3xl opacity-20"></div>
                 
                 <div class="text-center mb-8">
                     <h2 class="text-3xl font-black uppercase tracking-tight text-white mb-1">Workout <span class="fitness-text-gradient">Zone</span></h2>
@@ -101,8 +102,8 @@
                 </div>
 
                 <!-- Tab Login / Registrati -->
-                <div class="flex p-1 bg-brand-dark/60 rounded-xl mb-6 border border-brand-border">
-                    <button id="tab-login" onclick="switchAuthTab('login')" class="w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-white bg-brand-pink shadow-md">Accedi</button>
+                <div class="flex p-1 bg-brand-dark/80 rounded-xl mb-6 border border-brand-border">
+                    <button id="tab-login" onclick="switchAuthTab('login')" class="w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-black bg-brand-lime shadow-md">Accedi</button>
                     <button id="tab-signup" onclick="switchAuthTab('signup')" class="w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-gray-400 hover:text-white">Registrati</button>
                 </div>
 
@@ -110,13 +111,13 @@
                 <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Email</label>
-                        <input type="email" id="login-email" required class="w-full px-4 py-3 bg-brand-dark/80 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-pink focus:outline-none text-white text-sm">
+                        <input type="email" id="login-email" required class="w-full px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-cyan focus:outline-none text-white text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Password</label>
-                        <input type="password" id="login-password" required class="w-full px-4 py-3 bg-brand-dark/80 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-pink focus:outline-none text-white text-sm">
+                        <input type="password" id="login-password" required class="w-full px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-cyan focus:outline-none text-white text-sm">
                     </div>
-                    <button type="submit" class="w-full py-3.5 fitness-gradient text-white font-black uppercase tracking-wider text-sm rounded-xl shadow-lg shadow-brand-pink/20 hover:opacity-95 transition transform active:scale-95">Entra in Classe</button>
+                    <button type="submit" class="w-full py-3.5 btn-gradient text-black font-black uppercase tracking-wider text-sm rounded-xl shadow-lg shadow-brand-lime/20 hover:opacity-95 transition transform active:scale-95">Entra in Classe</button>
                 </form>
 
                 <!-- FORM SIGNUP -->
@@ -124,47 +125,47 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Nome</label>
-                            <input type="text" id="signup-nome" required class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                            <input type="text" id="signup-nome" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Cognome</label>
-                            <input type="text" id="signup-cognome" required class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                            <input type="text" id="signup-cognome" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
-                        <input type="email" id="signup-email" required class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                        <input type="email" id="signup-email" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
-                        <input type="password" id="signup-password" required class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                        <input type="password" id="signup-password" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Telefono</label>
-                        <input type="tel" id="signup-telefono" class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                        <input type="tel" id="signup-telefono" class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Scadenza Certificato Medico</label>
-                        <input type="date" id="signup-cert-date" required class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                        <input type="date" id="signup-cert-date" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Foto Profilo</label>
-                        <input type="file" id="signup-avatar" accept="image/*" class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-brand-pink/20 file:text-brand-pink file:font-bold">
+                        <input type="file" id="signup-avatar" accept="image/*" class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-brand-cyan/20 file:text-brand-cyan file:font-bold">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Certificato Medico (PDF/Foto)</label>
-                        <input type="file" id="signup-cert-file" accept="application/pdf,image/*" required class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-brand-pink/20 file:text-brand-pink file:font-bold">
+                        <input type="file" id="signup-cert-file" accept="application/pdf,image/*" required class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-brand-cyan/20 file:text-brand-cyan file:font-bold">
                     </div>
-                    <button type="submit" class="w-full py-3.5 fitness-gradient text-white font-black uppercase tracking-wider text-sm rounded-xl shadow-lg shadow-brand-pink/20 hover:opacity-95 transition transform active:scale-95">Completa Iscrizione</button>
+                    <button type="submit" class="w-full py-3.5 btn-gradient text-black font-black uppercase tracking-wider text-sm rounded-xl shadow-lg shadow-brand-lime/20 hover:opacity-95 transition transform active:scale-95">Completa Iscrizione</button>
                 </form>
             </div>
         </section>
 
         <!-- DASHBOARD ALLIEVA -->
         <section id="student-dashboard" class="hidden space-y-6">
-            <div class="glass-panel p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="glass-panel p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 border-l-4 border-l-brand-lime">
                 <div class="flex items-center space-x-4 w-full md:w-auto">
-                    <img id="student-avatar-img" src="https://via.placeholder.com/80" alt="Avatar" class="w-20 h-20 rounded-2xl object-cover border-2 border-brand-pink shadow-lg shadow-brand-pink/30">
+                    <img id="student-avatar-img" src="https://via.placeholder.com/80" alt="Avatar" class="w-20 h-20 rounded-2xl object-cover border-2 border-brand-lime shadow-lg shadow-brand-lime/20">
                     <div>
                         <h2 id="student-welcome" class="text-2xl font-black text-white"></h2>
                         <p id="student-cert-status" class="text-xs mt-1.5"></p>
@@ -174,7 +175,7 @@
 
             <div class="glass-panel p-6 rounded-3xl">
                 <h3 class="text-lg font-black uppercase tracking-wide text-white mb-6 flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-check text-brand-pink"></i> Prossime Lezioni
+                    <i class="fa-solid fa-calendar-check text-brand-lime"></i> Prossime Lezioni
                 </h3>
                 <div id="student-lessons-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
@@ -182,12 +183,12 @@
 
         <!-- DASHBOARD ADMIN (ISTRUTTRICE) -->
         <section id="admin-dashboard" class="hidden space-y-8">
-            <div class="glass-panel p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-l-brand-pink">
+            <div class="glass-panel p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-l-brand-cyan">
                 <div>
                     <h2 class="text-2xl font-black uppercase tracking-tight text-white">Pannello Istruttrice</h2>
                     <p class="text-xs text-gray-400">Analisi affluenza, allieve e corsi</p>
                 </div>
-                <span class="px-3 py-1 bg-brand-pink/20 text-brand-pink border border-brand-pink/40 text-xs font-black rounded-full uppercase tracking-widest">Admin Dashboard</span>
+                <span class="px-3 py-1 bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 text-xs font-black rounded-full uppercase tracking-widest">Admin Dashboard</span>
             </div>
 
             <!-- ANALYTICS / GRAFICI -->
@@ -210,10 +211,10 @@
             <div class="glass-panel p-6 rounded-3xl">
                 <h3 class="text-lg font-black uppercase tracking-wide text-white mb-4">Programma Nuova Lezione</h3>
                 <form id="form-create-lesson" onsubmit="handleCreateLesson(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <input type="text" id="lesson-title" placeholder="Es. Zumba Toning" required class="px-4 py-3 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
-                    <input type="datetime-local" id="lesson-datetime" required class="px-4 py-3 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
-                    <input type="number" id="lesson-capacity" value="20" min="1" required class="px-4 py-3 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
-                    <button type="submit" class="py-3 fitness-gradient text-white font-black uppercase text-xs rounded-xl shadow-lg hover:opacity-95">Pubblica Lezione</button>
+                    <input type="text" id="lesson-title" placeholder="Es. Zumba Toning" required class="px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+                    <input type="datetime-local" id="lesson-datetime" required class="px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+                    <input type="number" id="lesson-capacity" value="20" min="1" required class="px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+                    <button type="submit" class="py-3 btn-gradient text-black font-black uppercase text-xs rounded-xl shadow-lg hover:opacity-95">Pubblica Lezione</button>
                 </form>
             </div>
 
@@ -239,10 +240,9 @@
 
     </main>
 
-    <!-- Script Logica App + Script PWA / Scorciatoia -->
+    <!-- Script Logica App + Script PWA -->
     <script src="app.js"></script>
     <script>
-        // Logica per intercettare l'installazione su Desktop/Mobile (PWA)
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
