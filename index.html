@@ -82,15 +82,25 @@
                 <h2 class="text-3xl font-black uppercase tracking-tight text-white">Workout <span class="fitness-text-gradient">Zone</span></h2>
                 <p id="auth-subtitle" class="text-xs text-gray-400 mt-1">Accedi per gestire le tue lezioni</p>
             </div>
-
+    
             <form id="auth-form" class="space-y-4">
-                <div id="form-fields-container" class="space-y-4"></div>
-
+                <!-- CAMPI DINAMICI GENERATI O MODIFICATI -->
+                <div id="form-fields-container" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
+                        <input type="email" id="auth-email" required class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
+                        <input type="password" id="auth-password" required class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                    </div>
+                </div>
+    
                 <button type="submit" id="auth-submit-btn" class="w-full py-3.5 btn-gradient text-black font-black uppercase tracking-wider text-sm rounded-xl shadow-lg hover:opacity-95 transition active:scale-95">
                     Entra
                 </button>
             </form>
-
+    
             <div class="mt-6 text-center pt-4 border-t border-brand-border">
                 <p id="auth-switch-text" class="text-xs text-gray-400">
                     Non hai un account? 
