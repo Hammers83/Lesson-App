@@ -20,33 +20,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// GESTIONE TAB LOGIN / SIGNUP
+// GESTIONE TAB LOGIN / SIGNUP (FIXATA)
 function switchAuthTab(tab) {
     const tabLogin = document.getElementById('tab-login');
     const tabSignup = document.getElementById('tab-signup');
     const formLogin = document.getElementById('form-login');
     const formSignup = document.getElementById('form-signup');
 
+    if (!tabLogin || !tabSignup || !formLogin || !formSignup) return;
+
     if (tab === 'login') {
+        // Mostra Login
         formLogin.classList.remove('hidden');
         formSignup.classList.add('hidden');
+        
+        // Stile Tasto Attivo (Login)
         tabLogin.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-black bg-brand-lime shadow-md';
-        tabSignup.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-gray-400 hover:text-white';
+        tabSignup.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-gray-400 hover:text-white bg-transparent';
     } else {
+        // Mostra Registrazione
         formLogin.classList.add('hidden');
         formSignup.classList.remove('hidden');
+        
+        // Stile Tasto Attivo (Registrati)
         tabSignup.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-black bg-brand-lime shadow-md';
-        tabLogin.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-gray-400 hover:text-white';
+        tabLogin.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-gray-400 hover:text-white bg-transparent';
     }
 }
-
-function showAuthView() {
-    document.getElementById('auth-section').classList.remove('hidden');
-    document.getElementById('student-dashboard').classList.add('hidden');
-    document.getElementById('admin-dashboard').classList.add('hidden');
-    document.getElementById('nav-links').innerHTML = '';
-}
-
 // LOGIN CON GESTIONE ERRORI AVANZATA
 async function handleLogin(e) {
     e.preventDefault();
