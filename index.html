@@ -101,12 +101,19 @@
                     <p id="auth-subtitle" class="text-xs text-gray-400">Accedi per gestire le tue lezioni</p>
                 </div>
 
-                <!-- CAMPI DINAMICI DEL FORM -->
+                <!-- FORM UNICO -->
                 <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
                     
-                    <!-- Contenitore dei campi (sostituiti via JavaScript) -->
+                    <!-- CAMPI CAMBIATI DINAMICAMENTE -->
                     <div id="form-fields-container" class="space-y-4">
-                        <!-- I campi di Login verranno caricati qui di default -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Email</label>
+                            <input type="email" id="auth-email" required class="w-full px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-cyan focus:outline-none text-white text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Password</label>
+                            <input type="password" id="auth-password" required class="w-full px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-cyan focus:outline-none text-white text-sm">
+                        </div>
                     </div>
 
                     <!-- PULSANTE PRINCIPALE -->
@@ -115,7 +122,7 @@
                     </button>
                 </form>
 
-                <!-- LINK IN BASSO PER CAMBIARE MODALITÀ SOTTO IL PULSANTE ENTRA -->
+                <!-- LINK SOTTO IL PULSANTE -->
                 <div class="mt-6 text-center pt-4 border-t border-brand-border">
                     <p id="auth-switch-text" class="text-xs text-gray-400">
                         Non hai un account? 
