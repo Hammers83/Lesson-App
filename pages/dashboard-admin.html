@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZUMBA con Angelo | Pannello Istruttore</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { lime: '#CCFF00', cyan: '#00E5FF', pink: '#FF007F', dark: '#0B0F19', card: '#131927', border: '#202A40' }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-brand-dark text-gray-100 font-sans min-h-screen flex flex-col antialiased">
+
+    <!-- NAVBAR -->
+    <nav class="sticky top-0 z-40 glass-panel border-b border-brand-border">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl btn-gradient flex items-center justify-center">
+                    <i class="fa-solid fa-bolt text-black text-xl"></i>
+                </div>
+                <span class="text-xl font-black uppercase text-white">ZUMBA <span class="fitness-text-gradient">con Angelo</span></span>
+            </div>
+            <div id="nav-links" class="flex items-center space-x-3"></div>
+        </div>
+    </nav>
+
+    <!-- MAIN DASHBOARD -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 space-y-8">
+        <div class="glass-panel p-6 rounded-3xl flex justify-between items-center border-l-4 border-l-brand-cyan">
+            <div>
+                <h2 class="text-2xl font-black uppercase text-white">Pannello Istruttore</h2>
+                <p class="text-xs text-gray-400">Analisi e gestione dei corsi e delle allieve</p>
+            </div>
+            <span class="px-3 py-1 bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 text-xs font-black rounded-full uppercase tracking-widest">Admin Angelo</span>
+        </div>
+
+        <!-- GRAFICI ANALYTICS -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel p-6 rounded-3xl">
+                <h4 class="text-sm font-bold uppercase text-gray-300 mb-4">Presenze per Sessione</h4>
+                <div class="relative h-64 w-full">
+                    <canvas id="chart-presenze"></canvas>
+                </div>
+            </div>
+            <div class="glass-panel p-6 rounded-3xl">
+                <h4 class="text-sm font-bold uppercase text-gray-300 mb-4">Stato Certificati Medici</h4>
+                <div class="relative h-64 w-full flex justify-center">
+                    <canvas id="chart-certificati"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- FORM CREAZIONE LEZIONE -->
+        <div class="glass-panel p-6 rounded-3xl">
+            <h3 class="text-lg font-black uppercase text-white mb-4">Programma Nuova Lezione</h3>
+            <form id="form-create-lesson" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <input type="text" id="lesson-title" placeholder="Es. Zumba Fitness / Toning" required class="px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm">
+                <input type="datetime-local" id="lesson-datetime" required class="px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm">
+                <input type="number" id="lesson-capacity" value="20" min="1" required class="px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm">
+                <button type="submit" class="py-3 btn-gradient text-black font-black uppercase text-xs rounded-xl shadow-lg">Pubblica Lezione</button>
+            </form>
+        </div>
+
+        <!-- TABELLA ALLIEVE -->
+        <div class="glass-panel p-6 rounded-3xl">
+            <h3 class="text-lg font-black uppercase text-white mb-4">Anagrafica Allieve</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-brand-border text-xs font-bold text-gray-400 uppercase">
+                            <th class="py-3 px-2">Foto</th>
+                            <th class="py-3 px-2">Allieva</th>
+                            <th class="py-3 px-2">Contatti</th>
+                            <th class="py-3 px-2">Scadenza Cert.</th>
+                            <th class="py-3 px-2">Documento</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-students-body" class="divide-y divide-brand-border text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/admin.js"></script>
+</body>
+</html>
