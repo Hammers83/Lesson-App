@@ -1,168 +1,237 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zumba Fitness App</title>
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zumba Pulse | Fitness & Class Manager</title>
+    
+    <!-- Meta tag PWA per installazione su Desktop/Mobile -->
+    <meta name="theme-color" content="#FF0055">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ZumbaPulse">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS Client -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            pink: '#FF0055',
+                            orange: '#FF5500',
+                            purple: '#7928CA',
+                            dark: '#0F1117',
+                            card: '#181B25',
+                            border: '#2A2E3D'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Supabase, Chart.js, FontAwesome -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Chart.js per la Dashboard Admin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- FontAwesome per Icone -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        .gradient-bg { background: linear-gradient(135deg, #FF0844 0%, #FFB199 100%); }
+        .fitness-gradient { background: linear-gradient(135deg, #FF0055 0%, #FF5500 50%, #7928CA 100%); }
+        .fitness-text-gradient {
+            background: linear-gradient(135deg, #FF0055 0%, #FF5500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glass-panel {
+            background: rgba(24, 27, 37, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+<body class="bg-brand-dark text-gray-100 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-pink selection:text-white">
 
-    <nav class="gradient-bg text-white shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-person-dancing text-2xl"></i>
-                <span class="text-xl font-bold tracking-wide">Zumba Fitness</span>
+    <!-- BANNER PER CREARE IL COLLEGAMENTO SUL DESKTOP / APP -->
+    <div id="pwa-install-banner" class="hidden fixed top-0 left-0 right-0 z-50 p-3 bg-gradient-to-r from-brand-pink to-brand-orange text-white shadow-2xl transition-all duration-300">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-fire text-2xl animate-bounce"></i>
+                <div>
+                    <p class="font-extrabold text-sm sm:text-base">Aggiungi Zumba Pulse al tuo Desktop!</p>
+                    <p class="text-xs text-white/80">Accedi rapidamente alle tue lezioni con un solo clic.</p>
+                </div>
             </div>
-            <div id="nav-links" class="flex items-center space-x-4"></div>
+            <div class="flex items-center space-x-2 w-full sm:w-auto">
+                <button id="pwa-install-btn" class="flex-1 sm:flex-none px-4 py-1.5 bg-white text-brand-pink font-extrabold text-xs rounded-full shadow hover:bg-gray-100 transition">
+                    Aggiungi ora
+                </button>
+                <button onclick="dismissPwaBanner()" class="px-2 py-1 text-white/70 hover:text-white text-xs">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="sticky top-0 z-40 glass-panel border-b border-brand-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl fitness-gradient flex items-center justify-center shadow-lg shadow-brand-pink/30">
+                    <i class="fa-solid fa-bolt text-white text-xl"></i>
+                </div>
+                <span class="text-xl font-black tracking-wider uppercase text-white">Zumba<span class="fitness-text-gradient">Pulse</span></span>
+            </div>
+            <div id="nav-links" class="flex items-center space-x-3"></div>
         </div>
     </nav>
 
-    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6">
+    <!-- CONTAINER PRINCIPALE -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- AUTHENTICATION SECTION -->
-        <section id="auth-section" class="max-w-md mx-auto my-8 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-            <div class="text-center mb-6">
-                <h2 id="auth-title" class="text-2xl font-extrabold text-gray-800">Accedi alla tua Area</h2>
-                <p class="text-sm text-gray-500">Gestisci le tue lezioni e presenze</p>
-            </div>
-
-            <div class="flex border-b border-gray-200 mb-6">
-                <button id="tab-login" onclick="switchAuthTab('login')" class="w-1/2 py-2 text-center font-semibold text-rose-600 border-b-2 border-rose-600">Accedi</button>
-                <button id="tab-signup" onclick="switchAuthTab('signup')" class="w-1/2 py-2 text-center font-semibold text-gray-400 border-b-2 border-transparent">Registrati</button>
-            </div>
-
-            <!-- LOGIN -->
-            <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Email</label>
-                    <input type="email" id="login-email" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 outline-none">
+        <!-- AUTHENTICATION (LOGIN / REGISTRAZIONE) -->
+        <section id="auth-section" class="max-w-md mx-auto my-6 sm:my-12">
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-24 -right-24 w-48 h-48 fitness-gradient rounded-full blur-3xl opacity-30"></div>
+                
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-black uppercase tracking-tight text-white mb-1">Workout <span class="fitness-text-gradient">Zone</span></h2>
+                    <p class="text-xs text-gray-400">Accedi o iscriviti per prenotare le tue lezioni</p>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Password</label>
-                    <input type="password" id="login-password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 outline-none">
-                </div>
-                <button type="submit" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg shadow-md transition">Accedi</button>
-            </form>
 
-            <!-- SIGNUP -->
-            <form id="form-signup" onsubmit="handleSignup(event)" class="space-y-4 hidden">
-                <div class="grid grid-cols-2 gap-3">
+                <!-- Tab Login / Registrati -->
+                <div class="flex p-1 bg-brand-dark/60 rounded-xl mb-6 border border-brand-border">
+                    <button id="tab-login" onclick="switchAuthTab('login')" class="w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-white bg-brand-pink shadow-md">Accedi</button>
+                    <button id="tab-signup" onclick="switchAuthTab('signup')" class="w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-gray-400 hover:text-white">Registrati</button>
+                </div>
+
+                <!-- FORM LOGIN -->
+                <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nome</label>
-                        <input type="text" id="signup-nome" required class="w-full px-3 py-2 border rounded-lg outline-none">
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Email</label>
+                        <input type="email" id="login-email" required class="w-full px-4 py-3 bg-brand-dark/80 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-pink focus:outline-none text-white text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Cognome</label>
-                        <input type="text" id="signup-cognome" required class="w-full px-3 py-2 border rounded-lg outline-none">
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Password</label>
+                        <input type="password" id="login-password" required class="w-full px-4 py-3 bg-brand-dark/80 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-pink focus:outline-none text-white text-sm">
                     </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Email</label>
-                    <input type="email" id="signup-email" required class="w-full px-3 py-2 border rounded-lg outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Password</label>
-                    <input type="password" id="signup-password" required class="w-full px-3 py-2 border rounded-lg outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Telefono</label>
-                    <input type="tel" id="signup-telefono" class="w-full px-3 py-2 border rounded-lg outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Scadenza Certificato Medico</label>
-                    <input type="date" id="signup-cert-date" required class="w-full px-3 py-2 border rounded-lg outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Foto Profilo (JPG/PNG)</label>
-                    <input type="file" id="signup-avatar" accept="image/*" class="w-full text-xs text-gray-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Certificato Medico (PDF/Immagine)</label>
-                    <input type="file" id="signup-cert-file" accept="application/pdf,image/*" required class="w-full text-xs text-gray-500">
-                </div>
-                <button type="submit" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg shadow-md transition">Crea Account Allieva</button>
-            </form>
+                    <button type="submit" class="w-full py-3.5 fitness-gradient text-white font-black uppercase tracking-wider text-sm rounded-xl shadow-lg shadow-brand-pink/20 hover:opacity-95 transition transform active:scale-95">Entra in Classe</button>
+                </form>
+
+                <!-- FORM SIGNUP -->
+                <form id="form-signup" onsubmit="handleSignup(event)" class="space-y-4 hidden">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Nome</label>
+                            <input type="text" id="signup-nome" required class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Cognome</label>
+                            <input type="text" id="signup-cognome" required class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
+                        <input type="email" id="signup-email" required class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
+                        <input type="password" id="signup-password" required class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Telefono</label>
+                        <input type="tel" id="signup-telefono" class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Scadenza Certificato Medico</label>
+                        <input type="date" id="signup-cert-date" required class="w-full px-3 py-2.5 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Foto Profilo</label>
+                        <input type="file" id="signup-avatar" accept="image/*" class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-brand-pink/20 file:text-brand-pink file:font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Certificato Medico (PDF/Foto)</label>
+                        <input type="file" id="signup-cert-file" accept="application/pdf,image/*" required class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-brand-pink/20 file:text-brand-pink file:font-bold">
+                    </div>
+                    <button type="submit" class="w-full py-3.5 fitness-gradient text-white font-black uppercase tracking-wider text-sm rounded-xl shadow-lg shadow-brand-pink/20 hover:opacity-95 transition transform active:scale-95">Completa Iscrizione</button>
+                </form>
+            </div>
         </section>
 
         <!-- DASHBOARD ALLIEVA -->
         <section id="student-dashboard" class="hidden space-y-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <img id="student-avatar-img" src="https://via.placeholder.com/80" alt="Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-rose-500">
+            <div class="glass-panel p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center space-x-4 w-full md:w-auto">
+                    <img id="student-avatar-img" src="https://via.placeholder.com/80" alt="Avatar" class="w-20 h-20 rounded-2xl object-cover border-2 border-brand-pink shadow-lg shadow-brand-pink/30">
                     <div>
-                        <h2 id="student-welcome" class="text-2xl font-bold text-gray-800"></h2>
-                        <p id="student-cert-status" class="text-sm mt-1"></p>
+                        <h2 id="student-welcome" class="text-2xl font-black text-white"></h2>
+                        <p id="student-cert-status" class="text-xs mt-1.5"></p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-days text-rose-500"></i> Prossime Lezioni
+            <div class="glass-panel p-6 rounded-3xl">
+                <h3 class="text-lg font-black uppercase tracking-wide text-white mb-6 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-check text-brand-pink"></i> Prossime Lezioni
                 </h3>
-                <div id="student-lessons-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <div id="student-lessons-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
         </section>
 
         <!-- DASHBOARD ADMIN (ISTRUTTRICE) -->
         <section id="admin-dashboard" class="hidden space-y-8">
-            <div class="flex justify-between items-center bg-gray-900 text-white p-6 rounded-2xl">
+            <div class="glass-panel p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-l-brand-pink">
                 <div>
-                    <h2 class="text-2xl font-extrabold">Pannello Controllo Istruttrice</h2>
-                    <p class="text-sm text-gray-400">Analisi e gestione presenze</p>
+                    <h2 class="text-2xl font-black uppercase tracking-tight text-white">Pannello Istruttrice</h2>
+                    <p class="text-xs text-gray-400">Analisi affluenza, allieve e corsi</p>
                 </div>
-                <span class="px-3 py-1 bg-rose-500 text-xs font-bold rounded-full uppercase">Admin</span>
+                <span class="px-3 py-1 bg-brand-pink/20 text-brand-pink border border-brand-pink/40 text-xs font-black rounded-full uppercase tracking-widest">Admin Dashboard</span>
             </div>
 
-            <!-- GRAFICI METRICHE -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h4 class="text-md font-bold text-gray-800 mb-4">Presenze per Lezione</h4>
-                    <canvas id="chart-presenze" height="180"></canvas>
+            <!-- ANALYTICS / GRAFICI -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass-panel p-6 rounded-3xl">
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-gray-300 mb-4">Presenze per Sessione</h4>
+                    <div class="relative h-64 w-full">
+                        <canvas id="chart-presenze"></canvas>
+                    </div>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h4 class="text-md font-bold text-gray-800 mb-4">Stato Certificati Medici</h4>
-                    <canvas id="chart-certificati" height="180"></canvas>
+                <div class="glass-panel p-6 rounded-3xl">
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-gray-300 mb-4">Stato Certificati Medici</h4>
+                    <div class="relative h-64 w-full flex justify-center">
+                        <canvas id="chart-certificati"></canvas>
+                    </div>
                 </div>
             </div>
 
-            <!-- CREAZIONE LEZIONE -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="text-lg font-bold text-gray-800 mb-4">Crea Nuova Lezione</h3>
-                <form id="form-create-lesson" onsubmit="handleCreateLesson(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" id="lesson-title" placeholder="Titolo Lezione" required class="px-3 py-2 border rounded-lg">
-                    <input type="datetime-local" id="lesson-datetime" required class="px-3 py-2 border rounded-lg">
-                    <input type="number" id="lesson-capacity" value="20" min="1" required class="px-3 py-2 border rounded-lg">
-                    <button type="submit" class="py-2 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700">Aggiungi Lezione</button>
+            <!-- NUOVA LEZIONE -->
+            <div class="glass-panel p-6 rounded-3xl">
+                <h3 class="text-lg font-black uppercase tracking-wide text-white mb-4">Programma Nuova Lezione</h3>
+                <form id="form-create-lesson" onsubmit="handleCreateLesson(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <input type="text" id="lesson-title" placeholder="Es. Zumba Toning" required class="px-4 py-3 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                    <input type="datetime-local" id="lesson-datetime" required class="px-4 py-3 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                    <input type="number" id="lesson-capacity" value="20" min="1" required class="px-4 py-3 bg-brand-dark/80 border border-brand-border rounded-xl text-white text-sm">
+                    <button type="submit" class="py-3 fitness-gradient text-white font-black uppercase text-xs rounded-xl shadow-lg hover:opacity-95">Pubblica Lezione</button>
                 </form>
             </div>
 
-            <!-- TABELLA ALLIEVE -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="text-lg font-bold text-gray-800 mb-4">Anagrafica Allieve</h3>
+            <!-- TABELLA ALLIEVE RESPONSIVE -->
+            <div class="glass-panel p-6 rounded-3xl">
+                <h3 class="text-lg font-black uppercase tracking-wide text-white mb-4">Anagrafica Allieve</h3>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b text-xs text-gray-400 uppercase">
-                                <th class="py-2">Foto</th>
-                                <th class="py-2">Nome</th>
-                                <th class="py-2">Email/Tel</th>
-                                <th class="py-2">Scadenza Certificato</th>
-                                <th class="py-2">Certificato PDF</th>
+                            <tr class="border-b border-brand-border text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                <th class="py-3 px-2">Foto</th>
+                                <th class="py-3 px-2">Allieva</th>
+                                <th class="py-3 px-2">Contatti</th>
+                                <th class="py-3 px-2">Scadenza Cert.</th>
+                                <th class="py-3 px-2">PDF Documento</th>
                             </tr>
                         </thead>
-                        <tbody id="table-students-body" class="divide-y divide-gray-100 text-sm"></tbody>
+                        <tbody id="table-students-body" class="divide-y divide-brand-border text-sm"></tbody>
                     </table>
                 </div>
             </div>
@@ -170,6 +239,34 @@
 
     </main>
 
+    <!-- Script Logica App + Script PWA / Scorciatoia -->
     <script src="app.js"></script>
+    <script>
+        // Logica per intercettare l'installazione su Desktop/Mobile (PWA)
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.classList.remove('hidden');
+        });
+
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                    dismissPwaBanner();
+                }
+            });
+        }
+
+        function dismissPwaBanner() {
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.classList.add('hidden');
+        }
+    </script>
 </body>
 </html>
