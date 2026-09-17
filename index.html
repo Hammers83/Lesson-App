@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zumba Fitness App</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js per la Dashboard Admin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome per Icone -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #FF0844 0%, #FFB199 100%); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+    <nav class="gradient-bg text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-person-dancing text-2xl"></i>
+                <span class="text-xl font-bold tracking-wide">Zumba Fitness</span>
+            </div>
+            <div id="nav-links" class="flex items-center space-x-4"></div>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6">
+
+        <!-- AUTHENTICATION SECTION -->
+        <section id="auth-section" class="max-w-md mx-auto my-8 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+            <div class="text-center mb-6">
+                <h2 id="auth-title" class="text-2xl font-extrabold text-gray-800">Accedi alla tua Area</h2>
+                <p class="text-sm text-gray-500">Gestisci le tue lezioni e presenze</p>
+            </div>
+
+            <div class="flex border-b border-gray-200 mb-6">
+                <button id="tab-login" onclick="switchAuthTab('login')" class="w-1/2 py-2 text-center font-semibold text-rose-600 border-b-2 border-rose-600">Accedi</button>
+                <button id="tab-signup" onclick="switchAuthTab('signup')" class="w-1/2 py-2 text-center font-semibold text-gray-400 border-b-2 border-transparent">Registrati</button>
+            </div>
+
+            <!-- LOGIN -->
+            <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Email</label>
+                    <input type="email" id="login-email" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Password</label>
+                    <input type="password" id="login-password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 outline-none">
+                </div>
+                <button type="submit" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg shadow-md transition">Accedi</button>
+            </form>
+
+            <!-- SIGNUP -->
+            <form id="form-signup" onsubmit="handleSignup(event)" class="space-y-4 hidden">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nome</label>
+                        <input type="text" id="signup-nome" required class="w-full px-3 py-2 border rounded-lg outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Cognome</label>
+                        <input type="text" id="signup-cognome" required class="w-full px-3 py-2 border rounded-lg outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Email</label>
+                    <input type="email" id="signup-email" required class="w-full px-3 py-2 border rounded-lg outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Password</label>
+                    <input type="password" id="signup-password" required class="w-full px-3 py-2 border rounded-lg outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Telefono</label>
+                    <input type="tel" id="signup-telefono" class="w-full px-3 py-2 border rounded-lg outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Scadenza Certificato Medico</label>
+                    <input type="date" id="signup-cert-date" required class="w-full px-3 py-2 border rounded-lg outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Foto Profilo (JPG/PNG)</label>
+                    <input type="file" id="signup-avatar" accept="image/*" class="w-full text-xs text-gray-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Certificato Medico (PDF/Immagine)</label>
+                    <input type="file" id="signup-cert-file" accept="application/pdf,image/*" required class="w-full text-xs text-gray-500">
+                </div>
+                <button type="submit" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg shadow-md transition">Crea Account Allieva</button>
+            </form>
+        </section>
+
+        <!-- DASHBOARD ALLIEVA -->
+        <section id="student-dashboard" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <img id="student-avatar-img" src="https://via.placeholder.com/80" alt="Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-rose-500">
+                    <div>
+                        <h2 id="student-welcome" class="text-2xl font-bold text-gray-800"></h2>
+                        <p id="student-cert-status" class="text-sm mt-1"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-days text-rose-500"></i> Prossime Lezioni
+                </h3>
+                <div id="student-lessons-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+        </section>
+
+        <!-- DASHBOARD ADMIN (ISTRUTTRICE) -->
+        <section id="admin-dashboard" class="hidden space-y-8">
+            <div class="flex justify-between items-center bg-gray-900 text-white p-6 rounded-2xl">
+                <div>
+                    <h2 class="text-2xl font-extrabold">Pannello Controllo Istruttrice</h2>
+                    <p class="text-sm text-gray-400">Analisi e gestione presenze</p>
+                </div>
+                <span class="px-3 py-1 bg-rose-500 text-xs font-bold rounded-full uppercase">Admin</span>
+            </div>
+
+            <!-- GRAFICI METRICHE -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h4 class="text-md font-bold text-gray-800 mb-4">Presenze per Lezione</h4>
+                    <canvas id="chart-presenze" height="180"></canvas>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h4 class="text-md font-bold text-gray-800 mb-4">Stato Certificati Medici</h4>
+                    <canvas id="chart-certificati" height="180"></canvas>
+                </div>
+            </div>
+
+            <!-- CREAZIONE LEZIONE -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Crea Nuova Lezione</h3>
+                <form id="form-create-lesson" onsubmit="handleCreateLesson(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input type="text" id="lesson-title" placeholder="Titolo Lezione" required class="px-3 py-2 border rounded-lg">
+                    <input type="datetime-local" id="lesson-datetime" required class="px-3 py-2 border rounded-lg">
+                    <input type="number" id="lesson-capacity" value="20" min="1" required class="px-3 py-2 border rounded-lg">
+                    <button type="submit" class="py-2 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700">Aggiungi Lezione</button>
+                </form>
+            </div>
+
+            <!-- TABELLA ALLIEVE -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Anagrafica Allieve</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b text-xs text-gray-400 uppercase">
+                                <th class="py-2">Foto</th>
+                                <th class="py-2">Nome</th>
+                                <th class="py-2">Email/Tel</th>
+                                <th class="py-2">Scadenza Certificato</th>
+                                <th class="py-2">Certificato PDF</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-students-body" class="divide-y divide-gray-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
