@@ -2,7 +2,8 @@
 const SUPABASE_URL = "https://aatelpatdppxdehbsxmz.supabase.co/rest/v1/"; 
 const SUPABASE_ANON_KEY = "sb_publishable_dA9nfW05M1BFCdjRwkWRMA_XM_SxPuV";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Usa window.supabaseClient per evitare conflitti con la libreria globale
+window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // VERIFICA AUTENTICAZIONE E RUOLI
 async function checkAuthAndRedirect(requiredRole = null) {
