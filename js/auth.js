@@ -1,7 +1,7 @@
 let isLoginMode = true;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Gestione unificata dei click (Event Delegation per evitare problemi di listener)
+    // Gestione dei click (Event Delegation per evitare problemi di listener)
     document.addEventListener('click', (e) => {
         if (e.target && e.target.id === 'btn-toggle-auth') {
             e.preventDefault();
@@ -15,20 +15,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         authForm.addEventListener('submit', handleAuthSubmit);
     }
 
-    // Mostra il form iniziale
+    // Renderizza il form iniziale (Login di default)
     renderAuthForm();
 
-    // Controlla la sessione in background senza bloccare la grafica
+    // Controlla la sessione utente in background
     try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single();
-            if (profile) {
-                window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
+        if (typeof supabase !== 'undefined') {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single();
+                if (profile) {
+                    window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
+                }
             }
         }
     } catch (err) {
-        console.error("Errore verifica sessione:", err);
+        console.error("Errore durante la verifica della sessione:", err);
     }
 });
 
@@ -74,10 +76,23 @@ function renderAuthForm() {
                     <input type="text" id="signup-cognome" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
                 </div>
             </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Data di Nascita</label>
+                    <input type="date" id="signup-data-nascita" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Telefono</label>
+                    <input type="tel" id="signup-telefono" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                </div>
+            </div>
+
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
                 <input type="email" id="auth-email" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
             </div>
+
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
@@ -87,22 +102,6 @@ function renderAuthForm() {
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Conferma Password</label>
                     <input type="password" id="signup-confirm-password" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
                 </div>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Telefono</label>
-                <input type="tel" id="signup-telefono" class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Scadenza Certificato Medico</label>
-                <input type="date" id="signup-cert-date" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Foto Profilo</label>
-                <input type="file" id="signup-avatar" accept="image/*" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-brand-cyan/20 file:text-brand-cyan font-bold">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Certificato Medico (PDF/Foto)</label>
-                <input type="file" id="signup-cert-file" accept="application/pdf,image/*" required class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-brand-cyan/20 file:text-brand-cyan font-bold">
             </div>
         `;
     }
@@ -140,39 +139,34 @@ async function handleSignup() {
         return;
     }
 
-    const nome = document.getElementById('signup-nome').value;
-    const cognome = document.getElementById('signup-cognome').value;
-    const telefono = document.getElementById('signup-telefono').value;
-    const scadenzaCert = document.getElementById('signup-cert-date').value;
+    const nome = document.getElementById('signup-nome').value.trim();
+    const cognome = document.getElementById('signup-cognome').value.trim();
+    const dataNascita = document.getElementById('signup-data-nascita').value;
+    const telefono = document.getElementById('signup-telefono').value.trim();
 
-    const avatarFile = document.getElementById('signup-avatar').files[0];
-    const certFile = document.getElementById('signup-cert-file').files[0];
-
+    // 1. Registrazione dell'utente su Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
     if (authError) return showAuthError(authError.message);
 
     const userId = authData.user.id;
-    let avatarUrl = null, certUrl = null;
 
-    if (avatarFile) {
-        const filePath = `${userId}/${Date.now()}.${avatarFile.name.split('.').pop()}`;
-        const { error: err } = await supabase.storage.from('avatars').upload(filePath, avatarFile);
-        if (!err) avatarUrl = supabase.storage.from('avatars').getPublicUrl(filePath).data.publicUrl;
-    }
-
-    if (certFile) {
-        const filePath = `${userId}/${Date.now()}.${certFile.name.split('.').pop()}`;
-        const { error: err } = await supabase.storage.from('certificates').upload(filePath, certFile);
-        if (!err) certUrl = filePath;
-    }
-
-    await supabase.from('profiles').insert([{
-        id: userId, nome, cognome, email, telefono,
-        scadenza_certificato: scadenzaCert,
-        avatar_url: avatarUrl, certificato_url: certUrl, is_admin: false
+    // 2. Inserimento del profilo nel database
+    const { error: profileError } = await supabase.from('profiles').insert([{
+        id: userId,
+        nome: nome,
+        cognome: cognome,
+        data_nascita: dataNascita,
+        telefono: telefono,
+        email: email,
+        is_admin: false
     }]);
 
-    alert("Registrazione completata!");
+    if (profileError) {
+        showAuthError("Errore durante il salvataggio del profilo.");
+        return;
+    }
+
+    alert("Registrazione completata con successo!");
     window.location.href = 'pages/dashboard-student.html';
 }
 
