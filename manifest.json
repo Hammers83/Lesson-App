@@ -1,0 +1,15 @@
+{
+  "name": "Zumba Pulse Management",
+  "short_name": "ZumbaPulse",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0F1117",
+  "theme_color": "#FF0055",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3843/3843211.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
