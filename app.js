@@ -12,7 +12,6 @@ let chartCertificatiInstance = null;
 
 // INIZIALIZZAZIONE STATO
 document.addEventListener('DOMContentLoaded', async () => {
-    renderAuthFields(); // Renderizza i campi iniziali (Login)
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
         currentUser = session.user;
@@ -22,36 +21,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// PASSAGGIO FLUIDO LOGIN <-> REGISTRAZIONE SOTTO IL PULSANTE
+// PASSAGGIO FLUIDO LOGIN <-> REGISTRAZIONE
 function toggleAuthMode() {
     isLoginMode = !isLoginMode;
     
-    // Rimuovi eventuali messaggi di errore vecchi
+    // Rimuove messaggi d'errore precedenti
     const existingError = document.getElementById('login-error-msg');
     if (existingError) existingError.remove();
 
     const subtitle = document.getElementById('auth-subtitle');
     const submitBtn = document.getElementById('auth-submit-btn');
     const switchText = document.getElementById('auth-switch-text');
+    const container = document.getElementById('form-fields-container');
 
     if (isLoginMode) {
+        // Modalità LOGIN
         subtitle.innerText = "Accedi per gestire le tue lezioni";
         submitBtn.innerText = "Entra";
         switchText.innerHTML = `Non hai un account? <button type="button" onclick="toggleAuthMode()" class="text-brand-lime font-bold hover:underline ml-1">Registrati</button>`;
-    } else {
-        subtitle.innerText = "Inserisci i tuoi dati per registrarti";
-        submitBtn.innerText = "Completa Iscrizione";
-        switchText.innerHTML = `Hai già un account? <button type="button" onclick="toggleAuthMode()" class="text-brand-cyan font-bold hover:underline ml-1">Accedi</button>`;
-    }
-
-    renderAuthFields();
-}
-
-// RENDERIZZA SOLO I CAMPI INTERNI AL RIQUADRO
-function renderAuthFields() {
-    const container = document.getElementById('form-fields-container');
-    
-    if (isLoginMode) {
+        
         container.innerHTML = `
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Email</label>
@@ -63,6 +51,11 @@ function renderAuthFields() {
             </div>
         `;
     } else {
+        // Modalità REGISTRAZIONE CON DOPPIA PASSWORD
+        subtitle.innerText = "Inserisci i tuoi dati per registrarti";
+        submitBtn.innerText = "Completa Iscrizione";
+        switchText.innerHTML = `Hai già un account? <button type="button" onclick="toggleAuthMode()" class="text-brand-cyan font-bold hover:underline ml-1">Accedi</button>`;
+        
         container.innerHTML = `
             <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -78,9 +71,15 @@ function renderAuthFields() {
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
                 <input type="email" id="auth-email" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
             </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
-                <input type="password" id="auth-password" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
+                    <input type="password" id="auth-password" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Conferma Password</label>
+                    <input type="password" id="signup-confirm-password" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+                </div>
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Telefono</label>
@@ -144,10 +143,18 @@ async function handleLogin() {
     await loadUserProfile();
 }
 
-// ESECUZIONE REGISTRAZIONE
+// ESECUZIONE REGISTRAZIONE CON CONTROLLO DOPPIA PASSWORD
 async function handleSignup() {
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
+    const confirmPassword = document.getElementById('signup-confirm-password').value;
+
+    // CONTROLLO CORRISPONDENZA PASSWORD
+    if (password !== confirmPassword) {
+        showAuthError("Le password inserite non coincidono. Riprova.");
+        return;
+    }
+
     const nome = document.getElementById('signup-nome').value;
     const cognome = document.getElementById('signup-cognome').value;
     const telefono = document.getElementById('signup-telefono').value;
