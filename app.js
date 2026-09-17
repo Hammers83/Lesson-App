@@ -6,11 +6,13 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let currentProfile = null;
+let isLoginMode = true; // Modalità iniziale: LOGIN
 let chartPresenzeInstance = null;
 let chartCertificatiInstance = null;
 
 // INIZIALIZZAZIONE STATO
 document.addEventListener('DOMContentLoaded', async () => {
+    renderAuthFields(); // Renderizza i campi iniziali (Login)
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
         currentUser = session.user;
@@ -20,53 +22,112 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// GESTIONE TAB LOGIN / SIGNUP (FIXATA)
-function switchAuthTab(tab) {
-    const tabLogin = document.getElementById('tab-login');
-    const tabSignup = document.getElementById('tab-signup');
-    const formLogin = document.getElementById('form-login');
-    const formSignup = document.getElementById('form-signup');
-
-    if (!tabLogin || !tabSignup || !formLogin || !formSignup) return;
-
-    if (tab === 'login') {
-        // Mostra Login
-        formLogin.classList.remove('hidden');
-        formSignup.classList.add('hidden');
-        
-        // Stile Tasto Attivo (Login)
-        tabLogin.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-black bg-brand-lime shadow-md';
-        tabSignup.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-gray-400 hover:text-white bg-transparent';
-    } else {
-        // Mostra Registrazione
-        formLogin.classList.add('hidden');
-        formSignup.classList.remove('hidden');
-        
-        // Stile Tasto Attivo (Registrati)
-        tabSignup.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-black bg-brand-lime shadow-md';
-        tabLogin.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-gray-400 hover:text-white bg-transparent';
-    }
-}
-// LOGIN CON GESTIONE ERRORI AVANZATA
-async function handleLogin(e) {
-    e.preventDefault();
+// PASSAGGIO FLUIDO LOGIN <-> REGISTRAZIONE SOTTO IL PULSANTE
+function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
     
-    // Rimuovi errori precedenti
+    // Rimuovi eventuali messaggi di errore vecchi
     const existingError = document.getElementById('login-error-msg');
     if (existingError) existingError.remove();
 
-    const email = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
+    const subtitle = document.getElementById('auth-subtitle');
+    const submitBtn = document.getElementById('auth-submit-btn');
+    const switchText = document.getElementById('auth-switch-text');
 
-    // 1. Tenta il login
+    if (isLoginMode) {
+        subtitle.innerText = "Accedi per gestire le tue lezioni";
+        submitBtn.innerText = "Entra";
+        switchText.innerHTML = `Non hai un account? <button type="button" onclick="toggleAuthMode()" class="text-brand-lime font-bold hover:underline ml-1">Registrati</button>`;
+    } else {
+        subtitle.innerText = "Inserisci i tuoi dati per registrarti";
+        submitBtn.innerText = "Completa Iscrizione";
+        switchText.innerHTML = `Hai già un account? <button type="button" onclick="toggleAuthMode()" class="text-brand-cyan font-bold hover:underline ml-1">Accedi</button>`;
+    }
+
+    renderAuthFields();
+}
+
+// RENDERIZZA SOLO I CAMPI INTERNI AL RIQUADRO
+function renderAuthFields() {
+    const container = document.getElementById('form-fields-container');
+    
+    if (isLoginMode) {
+        container.innerHTML = `
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Email</label>
+                <input type="email" id="auth-email" required class="w-full px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-cyan focus:outline-none text-white text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Password</label>
+                <input type="password" id="auth-password" required class="w-full px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-cyan focus:outline-none text-white text-sm">
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Nome</label>
+                    <input type="text" id="signup-nome" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Cognome</label>
+                    <input type="text" id="signup-cognome" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Email</label>
+                <input type="email" id="auth-email" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
+                <input type="password" id="auth-password" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Telefono</label>
+                <input type="tel" id="signup-telefono" class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Scadenza Certificato Medico</label>
+                <input type="date" id="signup-cert-date" required class="w-full px-3 py-2.5 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Foto Profilo</label>
+                <input type="file" id="signup-avatar" accept="image/*" class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-brand-cyan/20 file:text-brand-cyan file:font-bold">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Certificato Medico (PDF/Foto)</label>
+                <input type="file" id="signup-cert-file" accept="application/pdf,image/*" required class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-brand-cyan/20 file:text-brand-cyan file:font-bold">
+            </div>
+        `;
+    }
+}
+
+// INVIA FORM (LOGIN O REGISTRAZIONE)
+async function handleAuthSubmit(e) {
+    e.preventDefault();
+
+    if (isLoginMode) {
+        await handleLogin();
+    } else {
+        await handleSignup();
+    }
+}
+
+// ESECUZIONE LOGIN
+async function handleLogin() {
+    const existingError = document.getElementById('login-error-msg');
+    if (existingError) existingError.remove();
+
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-        showLoginError("Email o password errate. Verificale o registrati.");
+        showAuthError("Email o password errate. Verificale o registrati.");
         return;
     }
 
-    // 2. Verifica esistenza profilo nel DB
     const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -75,7 +136,7 @@ async function handleLogin(e) {
 
     if (profileError || !profile) {
         await supabase.auth.signOut();
-        showLoginError("Profilo allieva non trovato. Contatta l'istruttrice.");
+        showAuthError("Profilo allieva non trovato. Contatta l'istruttrice.");
         return;
     }
 
@@ -83,23 +144,10 @@ async function handleLogin(e) {
     await loadUserProfile();
 }
 
-function showLoginError(message) {
-    const formLogin = document.getElementById('form-login');
-    const errorDiv = document.createElement('div');
-    errorDiv.id = 'login-error-msg';
-    errorDiv.className = 'p-3 mb-4 text-xs font-bold text-white bg-brand-pink/20 border border-brand-pink/50 rounded-xl flex items-center gap-2 animate-pulse';
-    errorDiv.innerHTML = `
-        <i class="fa-solid fa-circle-exclamation text-brand-pink text-base"></i>
-        <span>${message}</span>
-    `;
-    formLogin.prepend(errorDiv);
-}
-
-// REGISTRAZIONE
-async function handleSignup(e) {
-    e.preventDefault();
-    const email = document.getElementById('signup-email').value;
-    const password = document.getElementById('signup-password').value;
+// ESECUZIONE REGISTRAZIONE
+async function handleSignup() {
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
     const nome = document.getElementById('signup-nome').value;
     const cognome = document.getElementById('signup-cognome').value;
     const telefono = document.getElementById('signup-telefono').value;
@@ -109,7 +157,7 @@ async function handleSignup(e) {
     const certFile = document.getElementById('signup-cert-file').files[0];
 
     const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-    if (authError) return alert("Errore registrazione: " + authError.message);
+    if (authError) return showAuthError("Errore registrazione: " + authError.message);
 
     const userId = authData.user.id;
     let avatarUrl = null;
@@ -144,11 +192,33 @@ async function handleSignup(e) {
         is_admin: false
     }]);
 
-    if (profileError) return alert("Errore nel salvataggio profilo: " + profileError.message);
+    if (profileError) return showAuthError("Errore nel salvataggio profilo: " + profileError.message);
 
     alert("Registrazione completata!");
     currentUser = authData.user;
     await loadUserProfile();
+}
+
+function showAuthError(message) {
+    const form = document.getElementById('auth-form');
+    const existingError = document.getElementById('login-error-msg');
+    if (existingError) existingError.remove();
+
+    const errorDiv = document.createElement('div');
+    errorDiv.id = 'login-error-msg';
+    errorDiv.className = 'p-3 mb-4 text-xs font-bold text-white bg-brand-pink/20 border border-brand-pink/50 rounded-xl flex items-center gap-2 animate-pulse';
+    errorDiv.innerHTML = `
+        <i class="fa-solid fa-circle-exclamation text-brand-pink text-base"></i>
+        <span>${message}</span>
+    `;
+    form.prepend(errorDiv);
+}
+
+function showAuthView() {
+    document.getElementById('auth-section').classList.remove('hidden');
+    document.getElementById('student-dashboard').classList.add('hidden');
+    document.getElementById('admin-dashboard').classList.add('hidden');
+    document.getElementById('nav-links').innerHTML = '';
 }
 
 // LOGOUT
@@ -299,7 +369,7 @@ async function handleCreateLesson(e) {
     loadAdminDashboard();
 }
 
-// ANALYTICS & GRAFICI (AZZURRO CYAN & VERDE LIME)
+// ANALYTICS & GRAFICI
 async function renderAdminAnalytics() {
     const { data: profiles } = await supabase.from('profiles').select('*').eq('is_admin', false);
     const { data: lessons } = await supabase.from('lessons').select('*, bookings(count)');
@@ -314,7 +384,6 @@ async function renderAdminAnalytics() {
         });
     }
 
-    // 1. Grafico Certificati
     if (chartCertificatiInstance) chartCertificatiInstance.destroy();
     const ctxCert = document.getElementById('chart-certificati').getContext('2d');
     chartCertificatiInstance = new Chart(ctxCert, {
@@ -336,7 +405,6 @@ async function renderAdminAnalytics() {
         }
     });
 
-    // 2. Grafico Presenze Lezioni
     const labels = lessons ? lessons.map(l => l.titolo) : [];
     const counts = lessons ? lessons.map(l => l.bookings[0]?.count || 0) : [];
 
