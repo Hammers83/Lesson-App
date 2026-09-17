@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// GESTIONE VISTE E TAB (LOGIN / SIGNUP)
+// GESTIONE TAB LOGIN / SIGNUP
 function switchAuthTab(tab) {
     const tabLogin = document.getElementById('tab-login');
     const tabSignup = document.getElementById('tab-signup');
@@ -30,12 +30,12 @@ function switchAuthTab(tab) {
     if (tab === 'login') {
         formLogin.classList.remove('hidden');
         formSignup.classList.add('hidden');
-        tabLogin.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-white bg-brand-pink shadow-md';
+        tabLogin.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-black bg-brand-lime shadow-md';
         tabSignup.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-gray-400 hover:text-white';
     } else {
         formLogin.classList.add('hidden');
         formSignup.classList.remove('hidden');
-        tabSignup.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-white bg-brand-pink shadow-md';
+        tabSignup.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-black bg-brand-lime shadow-md';
         tabLogin.className = 'w-1/2 py-2.5 text-center font-bold text-xs uppercase rounded-lg transition-all text-gray-400 hover:text-white';
     }
 }
@@ -47,20 +47,55 @@ function showAuthView() {
     document.getElementById('nav-links').innerHTML = '';
 }
 
-// AUTENTICAZIONE: LOGIN
+// LOGIN CON GESTIONE ERRORI AVANZATA
 async function handleLogin(e) {
     e.preventDefault();
-    const email = document.getElementById('login-email').value;
+    
+    // Rimuovi errori precedenti
+    const existingError = document.getElementById('login-error-msg');
+    if (existingError) existingError.remove();
+
+    const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
 
+    // 1. Tenta il login
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return alert("Errore di accesso: " + error.message);
+
+    if (error) {
+        showLoginError("Email o password errate. Verificale o registrati.");
+        return;
+    }
+
+    // 2. Verifica esistenza profilo nel DB
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+    if (profileError || !profile) {
+        await supabase.auth.signOut();
+        showLoginError("Profilo allieva non trovato. Contatta l'istruttrice.");
+        return;
+    }
 
     currentUser = data.user;
     await loadUserProfile();
 }
 
-// AUTENTICAZIONE: REGISTRAZIONE
+function showLoginError(message) {
+    const formLogin = document.getElementById('form-login');
+    const errorDiv = document.createElement('div');
+    errorDiv.id = 'login-error-msg';
+    errorDiv.className = 'p-3 mb-4 text-xs font-bold text-white bg-brand-pink/20 border border-brand-pink/50 rounded-xl flex items-center gap-2 animate-pulse';
+    errorDiv.innerHTML = `
+        <i class="fa-solid fa-circle-exclamation text-brand-pink text-base"></i>
+        <span>${message}</span>
+    `;
+    formLogin.prepend(errorDiv);
+}
+
+// REGISTRAZIONE
 async function handleSignup(e) {
     e.preventDefault();
     const email = document.getElementById('signup-email').value;
@@ -73,7 +108,6 @@ async function handleSignup(e) {
     const avatarFile = document.getElementById('signup-avatar').files[0];
     const certFile = document.getElementById('signup-cert-file').files[0];
 
-    // 1. Registrazione Account in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
     if (authError) return alert("Errore registrazione: " + authError.message);
 
@@ -81,7 +115,6 @@ async function handleSignup(e) {
     let avatarUrl = null;
     let certUrl = null;
 
-    // 2. Upload Foto Profilo (Bucket 'avatars')
     if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const filePath = `${userId}/${Date.now()}.${fileExt}`;
@@ -92,17 +125,13 @@ async function handleSignup(e) {
         }
     }
 
-    // 3. Upload Certificato Medico (Bucket 'certificates')
     if (certFile) {
         const fileExt = certFile.name.split('.').pop();
         const filePath = `${userId}/${Date.now()}.${fileExt}`;
         const { error: uploadErr } = await supabase.storage.from('certificates').upload(filePath, certFile);
-        if (!uploadErr) {
-            certUrl = filePath;
-        }
+        if (!uploadErr) certUrl = filePath;
     }
 
-    // 4. Salvataggio Dati Anagrafici nella tabella Profiles
     const { error: profileError } = await supabase.from('profiles').insert([{
         id: userId,
         nome,
@@ -117,7 +146,7 @@ async function handleSignup(e) {
 
     if (profileError) return alert("Errore nel salvataggio profilo: " + profileError.message);
 
-    alert("Registrazione completata con successo!");
+    alert("Registrazione completata!");
     currentUser = authData.user;
     await loadUserProfile();
 }
@@ -130,7 +159,7 @@ async function handleLogout() {
     showAuthView();
 }
 
-// CARICA PROFILO UTENTE
+// CARICAMENTO PROFILO
 async function loadUserProfile() {
     const { data, error } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
     if (error || !data) return showAuthView();
@@ -172,10 +201,9 @@ async function loadStudentDashboard() {
     if (scadenza < oggi) {
         statusEl.innerHTML = `<span class="text-brand-pink font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Certificato Scaduto (${currentProfile.scadenza_certificato})</span>`;
     } else {
-        statusEl.innerHTML = `<span class="text-emerald-400 font-bold"><i class="fa-solid fa-circle-check"></i> Certificato Valido fino al ${currentProfile.scadenza_certificato}</span>`;
+        statusEl.innerHTML = `<span class="text-brand-lime font-bold"><i class="fa-solid fa-circle-check"></i> Certificato Valido fino al ${currentProfile.scadenza_certificato}</span>`;
     }
 
-    // Carica Lezioni Disponibili
     const { data: lessons } = await supabase.from('lessons').select('*').gte('data_ora', new Date().toISOString()).order('data_ora', { ascending: true });
     const { data: userBookings } = await supabase.from('bookings').select('lesson_id').eq('user_id', currentUser.id);
     const bookedLessonIds = userBookings ? userBookings.map(b => b.lesson_id) : [];
@@ -193,14 +221,14 @@ async function loadStudentDashboard() {
         const dateFormatted = new Date(lesson.data_ora).toLocaleString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
         listEl.innerHTML += `
-            <div class="bg-brand-dark/60 border border-brand-border rounded-2xl p-4 flex justify-between items-center">
+            <div class="bg-brand-dark/80 border border-brand-border rounded-2xl p-4 flex justify-between items-center">
                 <div>
                     <p class="font-bold text-white text-base">${lesson.titolo}</p>
-                    <p class="text-xs text-gray-400 capitalize"><i class="fa-regular fa-clock mr-1 text-brand-orange"></i>${dateFormatted}</p>
+                    <p class="text-xs text-gray-400 capitalize"><i class="fa-regular fa-clock mr-1 text-brand-cyan"></i>${dateFormatted}</p>
                 </div>
                 ${isBooked 
-                    ? `<button onclick="cancelBooking('${lesson.id}')" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold text-xs rounded-xl transition">Annulla</button>`
-                    : `<button onclick="bookLesson('${lesson.id}')" class="px-4 py-2 fitness-gradient text-white font-bold text-xs rounded-xl shadow-md hover:opacity-90 transition">Partecipo!</button>`
+                    ? `<button onclick="cancelBooking('${lesson.id}')" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs rounded-xl transition">Annulla</button>`
+                    : `<button onclick="bookLesson('${lesson.id}')" class="px-4 py-2 btn-gradient text-black font-bold text-xs rounded-xl shadow-md hover:opacity-90 transition">Partecipo!</button>`
                 }
             </div>
         `;
@@ -217,7 +245,7 @@ async function cancelBooking(lessonId) {
     loadStudentDashboard();
 }
 
-// DASHBOARD ADMIN (ISTRUTTRICE)
+// DASHBOARD ADMIN
 async function loadAdminDashboard() {
     await loadStudentsTable();
     await renderAdminAnalytics();
@@ -241,12 +269,12 @@ async function loadStudentsTable() {
                 </td>
                 <td class="py-3 px-2 font-bold text-white">${p.nome} ${p.cognome}</td>
                 <td class="py-3 px-2 text-xs text-gray-400">${p.email}<br>${p.telefono || ''}</td>
-                <td class="py-3 px-2 text-xs font-semibold ${new Date(p.scadenza_certificato) < new Date() ? 'text-brand-pink' : 'text-emerald-400'}">
+                <td class="py-3 px-2 text-xs font-semibold ${new Date(p.scadenza_certificato) < new Date() ? 'text-brand-pink' : 'text-brand-lime'}">
                     ${p.scadenza_certificato}
                 </td>
                 <td class="py-3 px-2">
                     ${p.certificato_url 
-                        ? `<button onclick="downloadCert('${p.certificato_url}')" class="text-brand-pink hover:underline text-xs font-bold"><i class="fa-solid fa-file-pdf mr-1"></i> Scarica PDF</button>` 
+                        ? `<button onclick="downloadCert('${p.certificato_url}')" class="text-brand-cyan hover:underline text-xs font-bold"><i class="fa-solid fa-file-pdf mr-1"></i> Scarica PDF</button>` 
                         : '<span class="text-xs text-gray-500">Assente</span>'}
                 </td>
             </tr>
@@ -266,12 +294,12 @@ async function handleCreateLesson(e) {
     const capienza_massima = document.getElementById('lesson-capacity').value;
 
     await supabase.from('lessons').insert([{ titolo, data_ora, capienza_massima }]);
-    alert("Lezione creata con successo!");
+    alert("Lezione creata!");
     document.getElementById('form-create-lesson').reset();
     loadAdminDashboard();
 }
 
-// ANALYTICS & GRAFICI (MODALITÀ SCURA)
+// ANALYTICS & GRAFICI (AZZURRO CYAN & VERDE LIME)
 async function renderAdminAnalytics() {
     const { data: profiles } = await supabase.from('profiles').select('*').eq('is_admin', false);
     const { data: lessons } = await supabase.from('lessons').select('*, bookings(count)');
@@ -295,7 +323,7 @@ async function renderAdminAnalytics() {
             labels: ['Validi', 'Scaduti'],
             datasets: [{
                 data: [validi, scaduti],
-                backgroundColor: ['#10B981', '#FF0055'],
+                backgroundColor: ['#CCFF00', '#FF007F'],
                 borderWidth: 0
             }]
         },
@@ -303,9 +331,7 @@ async function renderAdminAnalytics() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    labels: { color: '#9CA3AF', font: { weight: 'bold' } }
-                }
+                legend: { labels: { color: '#9CA3AF', font: { weight: 'bold' } } }
             }
         }
     });
@@ -323,7 +349,7 @@ async function renderAdminAnalytics() {
             datasets: [{
                 label: 'Partecipanti',
                 data: counts,
-                backgroundColor: '#FF5500',
+                backgroundColor: '#00E5FF',
                 borderRadius: 8
             }]
         },
