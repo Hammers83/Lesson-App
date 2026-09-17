@@ -16,26 +16,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderAuthForm();
 
-    // Verifico la sessione Supabase attiva all'avvio
-    try {
-        if (typeof supabase !== 'undefined' && supabase.auth) {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('is_admin')
-                    .eq('id', session.user.id)
-                    .single();
-                
-                if (profile) {
-                    window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
-                }
+    // Controlla la sessione all'avvio
+try {
+    if (window.supabaseClient) {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('is_admin')
+                .eq('id', session.user.id)
+                .single();
+            
+            if (profile) {
+                window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
             }
         }
-    } catch (err) {
-        console.error("Errore verifica sessione:", err);
     }
-});
+} catch (err) {
+    console.error("Errore verifica sessione:", err);
+}
 
 function renderAuthForm() {
     const headerTitle = document.getElementById('form-header-title');
@@ -122,16 +121,15 @@ async function handleAuthSubmit(e) {
     }
 }
 
+// Funzione di Login
 async function handleLogin() {
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-        return showAuthError("Credenziali non valide o utente inesistente.");
-    }
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) return showAuthError("Credenziali errate o utente non trovato.");
 
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseClient
         .from('profiles')
         .select('is_admin')
         .eq('id', data.user.id)
@@ -139,11 +137,10 @@ async function handleLogin() {
 
     if (profile) {
         window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
-    } else {
-        window.location.href = 'pages/dashboard-student.html';
     }
 }
 
+// Funzione di Registrazione
 async function handleSignup() {
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
@@ -159,28 +156,20 @@ async function handleSignup() {
     const dataNascita = document.getElementById('signup-data-nascita').value;
     const telefono = document.getElementById('signup-telefono').value.trim();
 
-    // 1. Registrazione dell'utente in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // 1. Registrazione dell'utente
+    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
         email: email,
         password: password,
         options: {
-            data: {
-                nome: nome,
-                cognome: cognome
-            }
+            data: { nome: nome, cognome: cognome }
         }
     });
 
-    if (authError) {
-        return showAuthError(authError.message);
-    }
+    if (authError) return showAuthError(authError.message);
+    if (!authData.user) return showAuthError("Errore durante la creazione dell'utente.");
 
-    if (!authData.user) {
-        return showAuthError("Errore durante la creazione dell'utente.");
-    }
-
-    // 2. Inserimento record nella tabella "profiles"
-    const { error: profileError } = await supabase
+    // 2. Inserimento record nella tabella profiles
+    const { error: profileError } = await supabaseClient
         .from('profiles')
         .upsert([{
             id: authData.user.id,
@@ -193,8 +182,7 @@ async function handleSignup() {
         }]);
 
     if (profileError) {
-        console.error("Errore salvataggio profilo:", profileError);
-        showAuthError("Registrazione Auth eseguita, ma errore nel profilo: " + profileError.message);
+        showAuthError("Errore nel salvataggio del profilo: " + profileError.message);
         return;
     }
 
