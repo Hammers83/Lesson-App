@@ -2,65 +2,34 @@
 <html lang="it" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zumba Pulse | Fitness & Class Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZUMBA con Angelo | Accesso</title>
     
-    <!-- Meta tag PWA per iOS -->
-    <meta name="theme-color" content="#CCFF00">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ZumbaPulse">
-    <link rel="manifest" href="manifest.json">
-
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            lime: '#CCFF00',
-                            cyan: '#00E5FF',
-                            pink: '#FF007F',
-                            dark: '#0B0F19',
-                            card: '#131927',
-                            border: '#202A40'
-                        }
+                        brand: { lime: '#CCFF00', cyan: '#00E5FF', pink: '#FF007F', dark: '#0B0F19', card: '#131927', border: '#202A40' }
                     }
                 }
             }
         }
     </script>
-    <!-- Supabase, Chart.js, FontAwesome -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        .fitness-gradient { background: linear-gradient(135deg, #CCFF00 0%, #00E5FF 50%, #FF007F 100%); }
-        .btn-gradient { background: linear-gradient(135deg, #CCFF00 0%, #00E5FF 100%); }
-        .fitness-text-gradient {
-            background: linear-gradient(135deg, #CCFF00 0%, #00E5FF 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .glass-panel {
-            background: rgba(19, 25, 39, 0.8);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-brand-dark text-gray-100 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-lime selection:text-black">
+<body class="bg-brand-dark text-gray-100 font-sans min-h-screen flex flex-col justify-between antialiased">
 
-    <!-- BANNER PWA STANDARD (Android / Desktop) -->
-    <div id="pwa-install-banner" class="hidden fixed top-0 left-0 right-0 z-50 p-3 bg-gradient-to-r from-brand-lime via-brand-cyan to-brand-pink text-black shadow-2xl transition-all duration-300">
+    <!-- BANNER PWA STANDARD -->
+    <div id="pwa-install-banner" class="hidden fixed top-0 left-0 right-0 z-50 p-3 bg-gradient-to-r from-brand-lime via-brand-cyan to-brand-pink text-black shadow-2xl">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
             <div class="flex items-center space-x-3">
                 <i class="fa-solid fa-bolt text-2xl animate-bounce"></i>
                 <div>
-                    <p class="font-extrabold text-sm sm:text-base">Aggiungi Zumba Pulse alla Schermata Home!</p>
+                    <p class="font-extrabold text-sm sm:text-base">Aggiungi ZUMBA con Angelo alla Schermata Home!</p>
                     <p class="text-xs text-black/80">Accedi rapidamente alle tue lezioni con un solo clic.</p>
                 </div>
             </div>
@@ -75,8 +44,8 @@
         </div>
     </div>
 
-    <!-- BANNER DEDICATO A SAFARI IPHONE (iOS) -->
-    <div id="ios-install-banner" class="hidden fixed bottom-4 left-4 right-4 z-50 p-4 bg-brand-card/95 border border-brand-cyan/40 rounded-2xl text-white shadow-2xl backdrop-blur-md transition-all duration-300">
+    <!-- BANNER SAFARI IPHONE -->
+    <div id="ios-install-banner" class="hidden fixed bottom-4 left-4 right-4 z-50 p-4 bg-brand-card/95 border border-brand-cyan/40 rounded-2xl text-white shadow-2xl backdrop-blur-md">
         <div class="flex items-start justify-between gap-3">
             <div class="flex items-start space-x-3">
                 <i class="fa-solid fa-mobile-screen-button text-2xl text-brand-cyan mt-1"></i>
@@ -95,193 +64,44 @@
     </div>
 
     <!-- NAVBAR -->
-    <nav class="sticky top-0 z-40 glass-panel border-b border-brand-border">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
+    <nav class="glass-panel border-b border-brand-border">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 rounded-xl btn-gradient flex items-center justify-center shadow-lg shadow-brand-lime/20">
                     <i class="fa-solid fa-bolt text-black text-xl"></i>
                 </div>
-                <span class="text-xl font-black tracking-wider uppercase text-white">Zumba<span class="fitness-text-gradient">Pulse</span></span>
+                <span class="text-xl font-black tracking-wider uppercase text-white">ZUMBA <span class="fitness-text-gradient">con Angelo</span></span>
             </div>
-            <div id="nav-links" class="flex items-center space-x-3"></div>
         </div>
     </nav>
 
-    <!-- CONTAINER PRINCIPALE -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        <!-- AUTHENTICATION (LOGIN / REGISTRAZIONE DINAMICA) -->
-        <section id="auth-section" class="max-w-md mx-auto my-6 sm:my-12">
-            <div class="glass-panel p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-                <div class="absolute -top-24 -right-24 w-48 h-48 fitness-gradient rounded-full blur-3xl opacity-20"></div>
-                
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-black uppercase tracking-tight text-white mb-1">Workout <span class="fitness-text-gradient">Zone</span></h2>
-                    <p id="auth-subtitle" class="text-xs text-gray-400">Accedi per gestire le tue lezioni</p>
-                </div>
-
-                <!-- FORM UNICO -->
-                <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
-                    
-                    <!-- CAMPI CAMBIATI DINAMICAMENTE -->
-                    <div id="form-fields-container" class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Email</label>
-                            <input type="email" id="auth-email" required class="w-full px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-cyan focus:outline-none text-white text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Password</label>
-                            <input type="password" id="auth-password" required class="w-full px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-cyan focus:outline-none text-white text-sm">
-                        </div>
-                    </div>
-
-                    <!-- PULSANTE PRINCIPALE -->
-                    <button type="submit" id="auth-submit-btn" class="w-full py-3.5 btn-gradient text-black font-black uppercase tracking-wider text-sm rounded-xl shadow-lg shadow-brand-lime/20 hover:opacity-95 transition transform active:scale-95">
-                        Entra
-                    </button>
-                </form>
-
-                <!-- LINK SOTTO IL PULSANTE -->
-                <div class="mt-6 text-center pt-4 border-t border-brand-border">
-                    <p id="auth-switch-text" class="text-xs text-gray-400">
-                        Non hai un account? 
-                        <button type="button" onclick="toggleAuthMode()" class="text-brand-lime font-bold hover:underline ml-1">
-                            Registrati
-                        </button>
-                    </p>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- DASHBOARD ALLIEVA -->
-        <section id="student-dashboard" class="hidden space-y-6">
-            <div class="glass-panel p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 border-l-4 border-l-brand-lime">
-                <div class="flex items-center space-x-4 w-full md:w-auto">
-                    <img id="student-avatar-img" src="https://via.placeholder.com/80" alt="Avatar" class="w-20 h-20 rounded-2xl object-cover border-2 border-brand-lime shadow-lg shadow-brand-lime/20">
-                    <div>
-                        <h2 id="student-welcome" class="text-2xl font-black text-white"></h2>
-                        <p id="student-cert-status" class="text-xs mt-1.5"></p>
-                    </div>
-                </div>
+    <!-- FORM DI ACCESSO -->
+    <main class="flex-grow flex items-center justify-center px-4 py-8">
+        <div class="max-w-md w-full glass-panel p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-black uppercase tracking-tight text-white">Workout <span class="fitness-text-gradient">Zone</span></h2>
+                <p id="auth-subtitle" class="text-xs text-gray-400 mt-1">Accedi per gestire le tue lezioni</p>
             </div>
 
-            <div class="glass-panel p-6 rounded-3xl">
-                <h3 class="text-lg font-black uppercase tracking-wide text-white mb-6 flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-check text-brand-lime"></i> Prossime Lezioni
-                </h3>
-                <div id="student-lessons-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-            </div>
-        </section>
+            <form id="auth-form" class="space-y-4">
+                <div id="form-fields-container" class="space-y-4"></div>
 
-        <!-- DASHBOARD ADMIN (ISTRUTTRICE) -->
-        <section id="admin-dashboard" class="hidden space-y-8">
-            <div class="glass-panel p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-l-brand-cyan">
-                <div>
-                    <h2 class="text-2xl font-black uppercase tracking-tight text-white">Pannello Istruttrice</h2>
-                    <p class="text-xs text-gray-400">Analisi affluenza, allieve e corsi</p>
-                </div>
-                <span class="px-3 py-1 bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 text-xs font-black rounded-full uppercase tracking-widest">Admin Dashboard</span>
-            </div>
+                <button type="submit" id="auth-submit-btn" class="w-full py-3.5 btn-gradient text-black font-black uppercase tracking-wider text-sm rounded-xl shadow-lg hover:opacity-95 transition active:scale-95">
+                    Entra
+                </button>
+            </form>
 
-            <!-- ANALYTICS -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="glass-panel p-6 rounded-3xl">
-                    <h4 class="text-sm font-bold uppercase tracking-wider text-gray-300 mb-4">Presenze per Sessione</h4>
-                    <div class="relative h-64 w-full">
-                        <canvas id="chart-presenze"></canvas>
-                    </div>
-                </div>
-                <div class="glass-panel p-6 rounded-3xl">
-                    <h4 class="text-sm font-bold uppercase tracking-wider text-gray-300 mb-4">Stato Certificati Medici</h4>
-                    <div class="relative h-64 w-full flex justify-center">
-                        <canvas id="chart-certificati"></canvas>
-                    </div>
-                </div>
+            <div class="mt-6 text-center pt-4 border-t border-brand-border">
+                <p id="auth-switch-text" class="text-xs text-gray-400">
+                    Non hai un account? 
+                    <button type="button" id="btn-toggle-auth" class="text-brand-lime font-bold hover:underline ml-1">Registrati</button>
+                </p>
             </div>
-
-            <!-- NUOVA LEZIONE -->
-            <div class="glass-panel p-6 rounded-3xl">
-                <h3 class="text-lg font-black uppercase tracking-wide text-white mb-4">Programma Nuova Lezione</h3>
-                <form id="form-create-lesson" onsubmit="handleCreateLesson(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <input type="text" id="lesson-title" placeholder="Es. Zumba Toning" required class="px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
-                    <input type="datetime-local" id="lesson-datetime" required class="px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
-                    <input type="number" id="lesson-capacity" value="20" min="1" required class="px-4 py-3 bg-brand-dark/90 border border-brand-border rounded-xl text-white text-sm">
-                    <button type="submit" class="py-3 btn-gradient text-black font-black uppercase text-xs rounded-xl shadow-lg hover:opacity-95">Pubblica Lezione</button>
-                </form>
-            </div>
-
-            <!-- TABELLA ALLIEVE -->
-            <div class="glass-panel p-6 rounded-3xl">
-                <h3 class="text-lg font-black uppercase tracking-wide text-white mb-4">Anagrafica Allieve</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-brand-border text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                <th class="py-3 px-2">Foto</th>
-                                <th class="py-3 px-2">Allieva</th>
-                                <th class="py-3 px-2">Contatti</th>
-                                <th class="py-3 px-2">Scadenza Cert.</th>
-                                <th class="py-3 px-2">PDF Documento</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-students-body" class="divide-y divide-brand-border text-sm"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
+        </div>
     </main>
 
-    <script src="app.js"></script>
-    <script>
-        let deferredPrompt;
-
-        // RILEVAZIONE DISPOSITIVO E BROWSER
-        const isIos = () => {
-            const userAgent = window.navigator.userAgent.toLowerCase();
-            return /iphone|ipad|ipod/.test(userAgent);
-        };
-
-        const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
-
-        // GESTIONE BANNER ANDROID / DESKTOP
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            const banner = document.getElementById('pwa-install-banner');
-            if (banner) banner.classList.remove('hidden');
-        });
-
-        const installBtn = document.getElementById('pwa-install-btn');
-        if (installBtn) {
-            installBtn.addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    deferredPrompt = null;
-                    dismissPwaBanner();
-                }
-            });
-        }
-
-        function dismissPwaBanner() {
-            const banner = document.getElementById('pwa-install-banner');
-            if (banner) banner.classList.add('hidden');
-        }
-
-        function dismissIosBanner() {
-            const banner = document.getElementById('ios-install-banner');
-            if (banner) banner.classList.add('hidden');
-        }
-
-        // MOSTRA ISTRUZIONI SAFARI IPHONE SE NON È GIÀ INSTALLATA
-        document.addEventListener('DOMContentLoaded', () => {
-            if (isIos() && !isInStandaloneMode()) {
-                const iosBanner = document.getElementById('ios-install-banner');
-                if (iosBanner) iosBanner.classList.remove('hidden');
-            }
-        });
-    </script>
+    <script src="js/config.js"></script>
+    <script src="js/pwa.js"></script>
+    <script src="js/auth.js"></script>
 </body>
 </html>
