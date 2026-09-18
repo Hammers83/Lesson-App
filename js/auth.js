@@ -1,6 +1,7 @@
 let isLoginMode = true;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Gestione click sul pulsante "Registrati" / "Accedi"
     document.addEventListener('click', (e) => {
         if (e.target && e.target.id === 'btn-toggle-auth') {
             e.preventDefault();
@@ -14,27 +15,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         authForm.addEventListener('submit', handleAuthSubmit);
     }
 
+    // Primo rendering sicuro del form
     renderAuthForm();
 
-    // Controlla la sessione all'avvio
-try {
-    if (window.supabaseClient) {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) {
-            const { data: profile } = await supabaseClient
-                .from('profiles')
-                .select('is_admin')
-                .eq('id', session.user.id)
-                .single();
-            
-            if (profile) {
-                window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
+    // Verifica la sessione utente attiva
+    try {
+        if (window.supabaseClient && window.supabaseClient.auth) {
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (session) {
+                const { data: profile } = await window.supabaseClient
+                    .from('profiles')
+                    .select('is_admin')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (profile) {
+                    window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
+                }
             }
         }
+    } catch (err) {
+        console.error("Errore durante il controllo della sessione:", err);
     }
-} catch (err) {
-    console.error("Errore verifica sessione:", err);
-}
+});
 
 function renderAuthForm() {
     const headerTitle = document.getElementById('form-header-title');
@@ -42,17 +45,18 @@ function renderAuthForm() {
     const submitBtn = document.getElementById('auth-submit-btn');
     const switchText = document.getElementById('auth-switch-text');
     const container = document.getElementById('form-fields-container');
+    const errorContainer = document.getElementById('login-error-container');
 
-    if (!container || !subtitle || !submitBtn || !switchText) return;
-
-    const existingError = document.getElementById('login-error-msg');
-    if (existingError) existingError.remove();
+    if (!container) return;
+    if (errorContainer) errorContainer.innerHTML = '';
 
     if (isLoginMode) {
-        headerTitle.innerText = "Accedi";
-        subtitle.innerText = "Inserisci le tue credenziali per accedere";
-        submitBtn.innerText = "Entra";
-        switchText.innerHTML = `Non hai un account? <button type="button" id="btn-toggle-auth" class="text-brand-lime font-bold hover:underline ml-1">Registrati</button>`;
+        if (headerTitle) headerTitle.innerText = "Accedi";
+        if (subtitle) subtitle.innerText = "Inserisci le tue credenziali per accedere";
+        if (submitBtn) submitBtn.innerText = "Entra";
+        if (switchText) {
+            switchText.innerHTML = `Non hai un account? <button type="button" id="btn-toggle-auth" class="text-brand-lime font-bold hover:underline ml-1">Registrati</button>`;
+        }
         
         container.innerHTML = `
             <div>
@@ -65,10 +69,12 @@ function renderAuthForm() {
             </div>
         `;
     } else {
-        headerTitle.innerText = "Registrazione Allieva";
-        subtitle.innerText = "Iscriviti per accedere ai corsi di Zumba con Angelo";
-        submitBtn.innerText = "Completa Registrazione";
-        switchText.innerHTML = `Hai già un account? <button type="button" id="btn-toggle-auth" class="text-brand-cyan font-bold hover:underline ml-1">Accedi</button>`;
+        if (headerTitle) headerTitle.innerText = "Registrazione Allieva";
+        if (subtitle) subtitle.innerText = "Iscriviti per accedere ai corsi di Zumba con Angelo";
+        if (submitBtn) submitBtn.innerText = "Completa Registrazione";
+        if (switchText) {
+            switchText.innerHTML = `Hai già un account? <button type="button" id="btn-toggle-auth" class="text-brand-cyan font-bold hover:underline ml-1">Accedi</button>`;
+        }
         
         container.innerHTML = `
             <div class="grid grid-cols-2 gap-3">
@@ -82,7 +88,7 @@ function renderAuthForm() {
                 </div>
             </div>
 
-            <!-- Data di nascita disposta sopra al Telefono -->
+            <!-- Data di Nascita SOPRA al Numero di Telefono -->
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Data di Nascita</label>
                 <input type="date" id="signup-data-nascita" required class="w-full px-4 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
@@ -121,15 +127,16 @@ async function handleAuthSubmit(e) {
     }
 }
 
-// Funzione di Login
 async function handleLogin() {
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) return showAuthError("Credenziali errate o utente non trovato.");
+    const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+        return showAuthError("Credenziali non valide o utente non trovato.");
+    }
 
-    const { data: profile } = await supabaseClient
+    const { data: profile } = await window.supabaseClient
         .from('profiles')
         .select('is_admin')
         .eq('id', data.user.id)
@@ -137,10 +144,11 @@ async function handleLogin() {
 
     if (profile) {
         window.location.href = profile.is_admin ? 'pages/dashboard-admin.html' : 'pages/dashboard-student.html';
+    } else {
+        window.location.href = 'pages/dashboard-student.html';
     }
 }
 
-// Funzione di Registrazione
 async function handleSignup() {
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
@@ -156,8 +164,8 @@ async function handleSignup() {
     const dataNascita = document.getElementById('signup-data-nascita').value;
     const telefono = document.getElementById('signup-telefono').value.trim();
 
-    // 1. Registrazione dell'utente
-    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+    // 1. Inserimento utente su Supabase Auth
+    const { data: authData, error: authError } = await window.supabaseClient.auth.signUp({
         email: email,
         password: password,
         options: {
@@ -165,11 +173,16 @@ async function handleSignup() {
         }
     });
 
-    if (authError) return showAuthError(authError.message);
-    if (!authData.user) return showAuthError("Errore durante la creazione dell'utente.");
+    if (authError) {
+        return showAuthError(authError.message);
+    }
+
+    if (!authData.user) {
+        return showAuthError("Errore durante la creazione dell'account.");
+    }
 
     // 2. Inserimento record nella tabella profiles
-    const { error: profileError } = await supabaseClient
+    const { error: profileError } = await window.supabaseClient
         .from('profiles')
         .upsert([{
             id: authData.user.id,
@@ -182,7 +195,7 @@ async function handleSignup() {
         }]);
 
     if (profileError) {
-        showAuthError("Errore nel salvataggio del profilo: " + profileError.message);
+        showAuthError("Account creato, ma errore nel profilo: " + profileError.message);
         return;
     }
 
@@ -191,13 +204,12 @@ async function handleSignup() {
 }
 
 function showAuthError(msg) {
-    const form = document.getElementById('auth-form');
-    let errDiv = document.getElementById('login-error-msg');
-    if (!errDiv) {
-        errDiv = document.createElement('div');
-        errDiv.id = 'login-error-msg';
-        errDiv.className = 'p-3 mb-4 text-xs font-bold text-white bg-brand-pink/20 border border-brand-pink/50 rounded-xl flex items-center gap-2';
-        form.prepend(errDiv);
+    const errorContainer = document.getElementById('login-error-container');
+    if (errorContainer) {
+        errorContainer.innerHTML = `
+            <div class="p-3 mb-4 text-xs font-bold text-white bg-brand-pink/20 border border-brand-pink/50 rounded-xl flex items-center gap-2">
+                <i class="fa-solid fa-circle-exclamation text-brand-pink"></i> ${msg}
+            </div>
+        `;
     }
-    errDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation text-brand-pink"></i> ${msg}`;
 }
