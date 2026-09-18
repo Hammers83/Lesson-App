@@ -1,63 +1,137 @@
 let currentSessionData = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    currentSessionData = await checkAuthAndRedirect('student');
-    if (!currentSessionData) return;
+    // 1. Verifica che l'utente sia loggato (ruolo allieva)
+    const authData = await checkAuthAndRedirect('student');
+    if (!authData) return;
 
-    renderNavbar(currentSessionData.profile);
-    await loadStudentData();
+    // 2. Render della Navbar
+    renderNavbar(authData.profile);
+
+    // 3. Carica i dati del profilo e la lista delle lezioni
+    renderStudentProfile(authData.profile);
+    await loadAvailableLessons(authData.user.id);
 });
 
-async function loadStudentData() {
-    const profile = currentSessionData.profile;
-    
-    document.getElementById('student-welcome').innerText = `Benvenuta, ${profile.nome}!`;
-    document.getElementById('student-avatar-img').src = profile.avatar_url || 'https://via.placeholder.com/80';
+// Mostra i dati del profilo (Nome, Saluto e Stato Certificato)
+function renderStudentProfile(profile) {
+    const welcomeEl = document.getElementById('student-welcome');
+    const certStatusEl = document.getElementById('student-cert-status');
+    const avatarEl = document.getElementById('student-avatar-img');
 
-    const statusEl = document.getElementById('student-cert-status');
-    const isExpired = new Date(profile.scadenza_certificato) < new Date();
-    
-    statusEl.innerHTML = isExpired 
-        ? `<span class="text-brand-pink font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Certificato Scaduto (${profile.scadenza_certificato})</span>`
-        : `<span class="text-brand-lime font-bold"><i class="fa-solid fa-circle-check"></i> Certificato Valido fino al ${profile.scadenza_certificato}</span>`;
+    if (welcomeEl) {
+        welcomeEl.innerText = `Ciao, ${profile.nome || 'Allieva'}!`;
+    }
 
-    const { data: lessons } = await supabase.from('lessons').select('*').gte('data_ora', new Date().toISOString()).order('data_ora', { ascending: true });
-    const { data: userBookings } = await supabase.from('bookings').select('lesson_id').eq('user_id', profile.id);
-    const bookedIds = userBookings ? userBookings.map(b => b.lesson_id) : [];
+    if (avatarEl) {
+        // Genera un avatar dinamico basato sul nome se non presente
+        const initial = profile.nome ? profile.nome.charAt(0).toUpperCase() : 'Z';
+        avatarEl.src = profile.avatar_url || `https://ui-avatars.com/api/?name=${initial}&background=CCFF00&color=000`;
+    }
 
-    const listEl = document.getElementById('student-lessons-list');
-    listEl.innerHTML = '';
+    if (certStatusEl) {
+        if (profile.certificato_scadenza) {
+            const scadenza = new Date(profile.certificato_scadenza);
+            const oggi = new Date();
+            if (scadenza > oggi) {
+                certStatusEl.innerHTML = `<span class="text-brand-lime font-bold"><i class="fa-solid fa-circle-check"></i> Certificato Medico Valido</span> (Scadenza: ${scadenza.toLocaleDateString('it-IT')})`;
+            } else {
+                certStatusEl.innerHTML = `<span class="text-brand-pink font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Certificato Scaduto</span> (${scadenza.toLocaleDateString('it-IT')})`;
+            }
+        } else {
+            certStatusEl.innerHTML = `<span class="text-gray-400 font-bold"><i class="fa-solid fa-circle-info"></i> Certificato Medico Non Caricato</span>`;
+        }
+    }
+}
 
-    if (!lessons || lessons.length === 0) {
-        listEl.innerHTML = `<p class="text-sm text-gray-400 col-span-full">Nessuna lezione programmata al momento.</p>`;
+// Carica le lezioni e verifica se l'allieva è già prenotata
+async function loadAvailableLessons(userId) {
+    const lessonsListContainer = document.getElementById('student-lessons-list');
+    if (!lessonsListContainer) return;
+
+    // Recupera le lezioni dal database
+    const { data: lessons, error: lessonsError } = await window.supabaseClient
+        .from('lessons')
+        .select('*')
+        .order('datetime', { ascending: true });
+
+    if (lessonsError) {
+        lessonsListContainer.innerHTML = `<p class="text-xs text-brand-pink">Errore nel caricamento delle lezioni.</p>`;
         return;
     }
 
-    lessons.forEach(lesson => {
-        const isBooked = bookedIds.includes(lesson.id);
-        const dateFormatted = new Date(lesson.data_ora).toLocaleString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    if (!lessons || lessons.length === 0) {
+        lessonsListContainer.innerHTML = `<p class="text-xs text-gray-400">Nessuna lezione programmata al momento.</p>`;
+        return;
+    }
 
-        listEl.innerHTML += `
-            <div class="bg-brand-dark border border-brand-border rounded-2xl p-4 flex justify-between items-center">
+    // Recupera le prenotazioni effettuate da questa allieva
+    const { data: bookings } = await window.supabaseClient
+        .from('bookings')
+        .select('lesson_id')
+        .eq('user_id', userId);
+
+    const bookedLessonIds = bookings ? bookings.map(b => b.lesson_id) : [];
+
+    // Render delle schede lezioni
+    lessonsListContainer.innerHTML = lessons.map(lesson => {
+        const isBooked = bookedLessonIds.includes(lesson.id);
+        const lessonDate = new Date(lesson.datetime);
+        const formattedDate = lessonDate.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
+        const formattedTime = lessonDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+        return `
+            <div class="bg-brand-dark p-5 rounded-2xl border border-brand-border flex flex-col justify-between space-y-4">
                 <div>
-                    <p class="font-bold text-white text-base">${lesson.titolo}</p>
-                    <p class="text-xs text-gray-400 capitalize"><i class="fa-regular fa-clock mr-1 text-brand-cyan"></i>${dateFormatted}</p>
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] uppercase font-bold text-brand-cyan tracking-wider">${formattedDate} - ${formattedTime}</span>
+                        <span class="text-[10px] bg-brand-card px-2 py-0.5 rounded-full text-gray-300 font-bold border border-brand-border">
+                            Max ${lesson.capacity || 20} posti
+                        </span>
+                    </div>
+                    <h4 class="text-base font-black text-white mt-2">${lesson.title || 'Zumba Fitness'}</h4>
                 </div>
-                ${isBooked 
-                    ? `<button onclick="cancelBooking('${lesson.id}')" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs rounded-xl transition">Annulla</button>`
-                    : `<button onclick="bookLesson('${lesson.id}')" class="px-4 py-2 btn-gradient text-black font-bold text-xs rounded-xl shadow-md transition">Partecipo!</button>`
-                }
+
+                <div>
+                    ${isBooked ? `
+                        <button onclick="cancelBooking('${lesson.id}', '${userId}')" class="w-full py-2.5 bg-brand-pink/20 hover:bg-brand-pink text-brand-pink hover:text-white border border-brand-pink/40 text-xs font-bold rounded-xl transition">
+                            <i class="fa-solid fa-xmark"></i> Annulla Prenotazione
+                        </button>
+                    ` : `
+                        <button onclick="bookLesson('${lesson.id}', '${userId}')" class="w-full py-2.5 btn-gradient text-black font-black text-xs uppercase rounded-xl shadow-md hover:opacity-90 transition">
+                            <i class="fa-solid fa-plus"></i> Prenota Posto
+                        </button>
+                    `}
+                </div>
             </div>
         `;
-    });
+    }).join('');
 }
 
-async function bookLesson(lessonId) {
-    await supabase.from('bookings').insert([{ lesson_id: lessonId, user_id: currentSessionData.profile.id }]);
-    loadStudentData();
+// Funzione per effettuare la prenotazione
+async function bookLesson(lessonId, userId) {
+    const { error } = await window.supabaseClient
+        .from('bookings')
+        .insert([{ lesson_id: lessonId, user_id: userId }]);
+
+    if (error) {
+        alert("Errore durante la prenotazione: " + error.message);
+    } else {
+        await loadAvailableLessons(userId);
+    }
 }
 
-async function cancelBooking(lessonId) {
-    await supabase.from('bookings').delete().eq('lesson_id', lessonId).eq('user_id', currentSessionData.profile.id);
-    loadStudentData();
+// Funzione per cancellare la prenotazione
+async function cancelBooking(lessonId, userId) {
+    const { error } = await window.supabaseClient
+        .from('bookings')
+        .delete()
+        .eq('lesson_id', lessonId)
+        .eq('user_id', userId);
+
+    if (error) {
+        alert("Errore durante la cancellazione: " + error.message);
+    } else {
+        await loadAvailableLessons(userId);
+    }
 }
