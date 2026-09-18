@@ -69,8 +69,8 @@ function renderAuthForm() {
             </div>
         `;
     } else {
-        if (headerTitle) headerTitle.innerText = "Registrazione Allieva";
-        if (subtitle) subtitle.innerText = "Iscriviti per accedere ai corsi di Zumba con Angelo";
+        if (headerTitle) headerTitle.innerText = "Registrazione Allieva/o";
+        if (subtitle) subtitle.innerText = "Iscriviti per accedere ai corsi di ZUMBA con Angelo";
         if (submitBtn) submitBtn.innerText = "Completa Registrazione";
         if (switchText) {
             switchText.innerHTML = `Hai già un account? <button type="button" id="btn-toggle-auth" class="text-brand-cyan font-bold hover:underline ml-1">Accedi</button>`;
@@ -96,7 +96,7 @@ function renderAuthForm() {
 
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Telefono</label>
-                <input type="tel" id="signup-telefono" required placeholder="+39 333 0000000" class="w-full px-4 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                <input type="tel" id="signup-telefono" required placeholder="333 0000000" class="w-full px-4 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
             </div>
 
             <div>
