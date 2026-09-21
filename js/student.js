@@ -142,28 +142,30 @@ async function cancelBooking(lessonId, userId) {
     }
 } */
 
+// Carica le lezioni e controlla lo stato delle prenotazioni
 async function loadAvailableLessons(userId) {
     const sb = window.supabaseClient;
     const container = document.getElementById('student-lessons-list');
     if (!container) return;
 
-    // 1. Prendi tutte le lezioni future con il conteggio delle prenotazioni
+    // 1. Recupera le lezioni con l'elenco delle prenotazioni
     const { data: lessons, error } = await sb
         .from('lessons')
         .select('*, bookings(user_id)')
         .order('datetime', { ascending: true });
 
-    if (error || !lessons) {
-        container.innerHTML = `<p class="text-xs text-brand-pink">Errore nel caricamento delle lezioni.</p>`;
+    if (error) {
+        console.error("Errore recupero lezioni:", error);
+        container.innerHTML = `<p class="text-xs text-brand-pink">Errore nel caricamento delle lezioni: ${error.message}</p>`;
         return;
     }
 
-    if (lessons.length === 0) {
+    if (!lessons || lessons.length === 0) {
         container.innerHTML = `<p class="text-xs text-gray-400">Nessuna lezione in programma.</p>`;
         return;
     }
 
-    // 2. Genera le schede
+    // 2. Renderizziamo le schede
     container.innerHTML = lessons.map(lesson => {
         const bookingsList = lesson.bookings || [];
         const isBooked = bookingsList.some(b => b.user_id === userId);
@@ -184,16 +186,16 @@ async function loadAvailableLessons(userId) {
                             ${bookedCount}/${capacity} Posti
                         </span>
                     </div>
-                    <h4 class="text-base font-black text-white">${lesson.title}</h4>
+                    <h4 class="text-base font-black text-white">${lesson.title || 'Zumba Fitness'}</h4>
                 </div>
 
                 <div>
                     ${isBooked ? `
-                        <button onclick="toggleBooking(${lesson.id}, '${userId}', true)" class="w-full py-2.5 bg-brand-pink/20 hover:bg-brand-pink text-brand-pink hover:text-white border border-brand-pink/40 text-xs font-bold rounded-xl transition">
+                        <button onclick="toggleBooking('${lesson.id}', '${userId}', true)" class="w-full py-2.5 bg-brand-pink/20 hover:bg-brand-pink text-brand-pink hover:text-white border border-brand-pink/40 text-xs font-bold rounded-xl transition">
                             <i class="fa-solid fa-xmark mr-1"></i> Annulla Prenotazione
                         </button>
                     ` : `
-                        <button onclick="toggleBooking(${lesson.id}, '${userId}', false)" ${isFull ? 'disabled' : ''} class="w-full py-2.5 ${isFull ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'btn-gradient text-black font-black'} text-xs uppercase rounded-xl transition">
+                        <button onclick="toggleBooking('${lesson.id}', '${userId}', false)" ${isFull ? 'disabled' : ''} class="w-full py-2.5 ${isFull ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'btn-gradient text-black font-black'} text-xs uppercase rounded-xl transition">
                             <i class="fa-solid fa-check mr-1"></i> ${isFull ? 'Sold Out' : 'Prenota Posto'}
                         </button>
                     `}
@@ -203,13 +205,31 @@ async function loadAvailableLessons(userId) {
     }).join('');
 }
 
-// Funzione Unificata per Prenotare / Disdire
-async function toggleBooking(lessonId, userId, isBooked) {
+// Esponi la funzione a livello globale per renderla accessibile dall'onclick dell'HTML
+window.toggleBooking = async function(lessonId, userId, isBooked) {
     const sb = window.supabaseClient;
-    if (isBooked) {
-        await sb.from('bookings').delete().eq('lesson_id', lessonId).eq('user_id', userId);
-    } else {
-        await sb.from('bookings').insert([{ lesson_id: lessonId, user_id: userId }]);
+
+    try {
+        if (isBooked) {
+            const { error } = await sb
+                .from('bookings')
+                .delete()
+                .eq('lesson_id', lessonId)
+                .eq('user_id', userId);
+            
+            if (error) throw error;
+        } else {
+            const { error } = await sb
+                .from('bookings')
+                .insert([{ lesson_id: lessonId, user_id: userId }]);
+            
+            if (error) throw error;
+        }
+
+        // Ricarica l'elenco delle lezioni aggiornato
+        await loadAvailableLessons(userId);
+    } catch (err) {
+        console.error("Errore prenotazione:", err);
+        alert("Impossibile completare l'operazione: " + (err.message || err));
     }
-    await loadAvailableLessons(userId);
-}
+};
