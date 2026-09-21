@@ -25,8 +25,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadAdminDashboard() {
     await loadStudentsTable();
-    await loadAdminLessons();
     await renderAnalytics();
+    await loadAdminLessons();
 }
 
 async function loadStudentsTable() {
