@@ -54,6 +54,35 @@
             </h3>
             <div id="student-lessons-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
+
+        <!-- Chat -->
+        <div class="glass-panel p-6 rounded-3xl space-y-4">
+        <div class="flex justify-between items-center border-b border-brand-border pb-3">
+            <h3 class="text-lg font-black uppercase text-white flex items-center gap-2">
+                <i class="fa-solid fa-comments text-brand-cyan"></i> Community & Chat
+            </h3>
+            <!-- Selettore per passare da Chat di Gruppo a Privata -->
+            <select id="chat-type-select" class="bg-brand-dark border border-brand-border text-white text-xs rounded-xl p-2 font-bold focus:outline-none">
+                <option value="group">📢 Chat di Gruppo</option>
+                <option value="private">🔒 Messaggio Privato Istruttore</option>
+            </select>
+        </div>
+    
+        <!-- Area dei Messaggi -->
+        <div id="chat-messages-container" class="h-64 overflow-y-auto space-y-3 p-2 bg-brand-dark/50 rounded-2xl border border-brand-border">
+            <!-- I messaggi verranno caricati dinamicamente -->
+        </div>
+    
+        <!-- Form Invio -->
+        <form id="chat-form" class="flex gap-2">
+            <input type="text" id="chat-input" placeholder="Scrivi un messaggio..." required 
+                class="flex-grow bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-brand-cyan">
+            <button type="submit" class="btn-gradient text-black font-black px-5 py-2.5 rounded-xl text-xs uppercase hover:opacity-90 transition">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </form>
+        </div>
+        
     </main>
 
     <script src="../js/config.js"></script>
