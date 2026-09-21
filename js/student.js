@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. Carica i dati del profilo e la lista delle lezioni
     renderStudentProfile(authData.profile);
     await loadAvailableLessons(authData.user.id);
+
+    // Inizializza la chat per l'allieva
+    if (typeof initChat === 'function') {
+        await initChat(authData.profile);
+    }
 });
 
 // Mostra i dati del profilo (Nome, Saluto e Stato Certificato)
