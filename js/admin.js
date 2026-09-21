@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadAdminDashboard() {
     await loadStudentsTable();
+    await loadAdminLessons();
     await renderAnalytics();
 }
 
@@ -70,6 +71,71 @@ async function loadStudentsTable() {
             </tr>
         `;
     });
+}
+
+async function loadAdminLessons() {
+    const sb = getSupabase();
+    const container = document.getElementById('admin-lessons-container');
+    if (!container) return;
+
+    // Recupera lezioni con i profili delle allieve prenotate
+    const { data: lessons, error } = await sb
+        .from('lessons')
+        .select(`
+            *,
+            bookings (
+                profiles ( id, nome, cognome, telefono, email )
+            )
+        `)
+        .order('datetime', { ascending: true });
+
+    if (error || !lessons) {
+        container.innerHTML = `<p class="text-xs text-brand-pink">Errore nel caricamento delle lezioni.</p>`;
+        return;
+    }
+
+    if (lessons.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-400 col-span-2">Nessuna lezione creata.</p>`;
+        return;
+    }
+
+    container.innerHTML = lessons.map(lesson => {
+        const date = new Date(lesson.datetime);
+        const formattedDate = date.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
+        const formattedTime = date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+        
+        const iscritti = lesson.bookings ? lesson.bookings.map(b => b.profiles).filter(Boolean) : [];
+
+        return `
+            <div class="bg-brand-dark p-5 rounded-2xl border border-brand-border space-y-3">
+                <div class="flex justify-between items-center border-b border-brand-border pb-2">
+                    <div>
+                        <h4 class="text-base font-black text-white">${lesson.title}</h4>
+                        <span class="text-xs text-brand-cyan font-bold">${formattedDate} - ${formattedTime}</span>
+                    </div>
+                    <span class="text-xs bg-brand-card px-2.5 py-1 rounded-lg text-white font-bold border border-brand-border">
+                        ${iscritti.length} / ${lesson.capacity || 20} Presenze
+                    </span>
+                </div>
+
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase mb-2">Allieve Prenotate:</p>
+                    ${iscritti.length > 0 ? `
+                        <ul class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                            ${iscritti.map(student => `
+                                <li class="text-xs bg-brand-card p-2 rounded-xl flex justify-between items-center border border-brand-border/50">
+                                    <span class="font-bold text-white"><i class="fa-solid fa-user text-brand-lime mr-1.5"></i>${student.nome || ''} ${student.cognome || ''}</span>
+                                    <span class="text-[10px] text-gray-400">${student.telefono || student.email || ''}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    ` : `
+                        <p class="text-xs italic text-gray-500">Nessuna prenotazione al momento.</p>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 async function downloadCert(path) {
