@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderNavbar(currentSessionData.profile);
     await loadAdminDashboard();
+    
+    // Inizializza la chat per l'admin
+    if (typeof initChat === 'function') {
+        await initChat(currentSessionData.profile);
+    }
 
     const lessonForm = document.getElementById('form-create-lesson');
     if (lessonForm) {
