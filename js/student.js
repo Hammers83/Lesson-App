@@ -49,6 +49,7 @@ function renderStudentProfile(profile) {
     }
 }
 
+/* 21-09-26 funzione lezione vecchia
 // Carica le lezioni e verifica se l'allieva è già prenotata
 async function loadAvailableLessons(userId) {
     const lessonsListContainer = document.getElementById('student-lessons-list');
@@ -139,4 +140,76 @@ async function cancelBooking(lessonId, userId) {
     } else {
         await loadAvailableLessons(userId);
     }
+} */
+
+async function loadAvailableLessons(userId) {
+    const sb = window.supabaseClient;
+    const container = document.getElementById('student-lessons-list');
+    if (!container) return;
+
+    // 1. Prendi tutte le lezioni future con il conteggio delle prenotazioni
+    const { data: lessons, error } = await sb
+        .from('lessons')
+        .select('*, bookings(user_id)')
+        .order('datetime', { ascending: true });
+
+    if (error || !lessons) {
+        container.innerHTML = `<p class="text-xs text-brand-pink">Errore nel caricamento delle lezioni.</p>`;
+        return;
+    }
+
+    if (lessons.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-400">Nessuna lezione in programma.</p>`;
+        return;
+    }
+
+    // 2. Genera le schede
+    container.innerHTML = lessons.map(lesson => {
+        const bookingsList = lesson.bookings || [];
+        const isBooked = bookingsList.some(b => b.user_id === userId);
+        const bookedCount = bookingsList.length;
+        const capacity = lesson.capacity || 20;
+        const isFull = bookedCount >= capacity;
+
+        const date = new Date(lesson.datetime);
+        const formattedDate = date.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
+        const formattedTime = date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+        return `
+            <div class="bg-brand-dark p-5 rounded-2xl border border-brand-border flex flex-col justify-between space-y-4">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs uppercase font-bold text-brand-cyan">${formattedDate} - ${formattedTime}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${isFull ? 'bg-brand-pink/20 text-brand-pink border border-brand-pink/40' : 'bg-brand-lime/20 text-brand-lime border border-brand-lime/40'}">
+                            ${bookedCount}/${capacity} Posti
+                        </span>
+                    </div>
+                    <h4 class="text-base font-black text-white">${lesson.title}</h4>
+                </div>
+
+                <div>
+                    ${isBooked ? `
+                        <button onclick="toggleBooking(${lesson.id}, '${userId}', true)" class="w-full py-2.5 bg-brand-pink/20 hover:bg-brand-pink text-brand-pink hover:text-white border border-brand-pink/40 text-xs font-bold rounded-xl transition">
+                            <i class="fa-solid fa-xmark mr-1"></i> Annulla Prenotazione
+                        </button>
+                    ` : `
+                        <button onclick="toggleBooking(${lesson.id}, '${userId}', false)" ${isFull ? 'disabled' : ''} class="w-full py-2.5 ${isFull ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'btn-gradient text-black font-black'} text-xs uppercase rounded-xl transition">
+                            <i class="fa-solid fa-check mr-1"></i> ${isFull ? 'Sold Out' : 'Prenota Posto'}
+                        </button>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Funzione Unificata per Prenotare / Disdire
+async function toggleBooking(lessonId, userId, isBooked) {
+    const sb = window.supabaseClient;
+    if (isBooked) {
+        await sb.from('bookings').delete().eq('lesson_id', lessonId).eq('user_id', userId);
+    } else {
+        await sb.from('bookings').insert([{ lesson_id: lessonId, user_id: userId }]);
+    }
+    await loadAvailableLessons(userId);
 }
