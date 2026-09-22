@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const authData = await checkAuthAndRedirect('student');
     if (!authData) return;
 
+    currentSessionData = authData;
+
     // 2. Render della Navbar
     renderNavbar(authData.profile);
 
@@ -13,10 +15,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkCertificateStatus(authData.profile);
     initCertUploadForm(authData.user);
 
-    // 4. Carica la lista delle lezioni (passando il profilo completo per i controlli)
+    // 4. Inizializza Sistema Notifiche
+    await initNotifications(authData.user.id);
+    checkCertExpirationNotification(authData.user.id, authData.profile);
+
+    // 5. Carica la lista delle lezioni
     await loadAvailableLessons(authData.user.id, authData.profile);
 
-    // Inizializza la chat per l'allieva
+    // 6. Inizializza la chat per l'allieva
     if (typeof initChat === 'function') {
         await initChat(authData.profile);
     }
@@ -38,7 +44,6 @@ function renderStudentProfile(profile) {
     }
 
     if (certStatusEl) {
-        // Uniformato il controllo del campo
         const dataScad = profile.medical_certificate_expiration || profile.certificato_scadenza;
         if (dataScad) {
             const scadenza = new Date(dataScad);
@@ -60,7 +65,6 @@ async function loadAvailableLessons(userId, profile = {}) {
     const container = document.getElementById('student-lessons-list');
     if (!container) return;
 
-    // 1. Recupera le lezioni con l'elenco delle prenotazioni
     const { data: lessons, error } = await sb
         .from('lessons')
         .select('*, bookings(user_id)')
@@ -77,11 +81,9 @@ async function loadAvailableLessons(userId, profile = {}) {
         return;
     }
 
-    // Verifica la validità del certificato per la prenotazione
     const certDate = profile.medical_certificate_expiration || profile.certificato_scadenza;
     const isCertValid = certDate ? new Date(certDate) > new Date() : false;
 
-    // 2. Renderizziamo le schede
     container.innerHTML = lessons.map(lesson => {
         const bookingsList = lesson.bookings || [];
         const isBooked = bookingsList.some(b => b.user_id === userId);
@@ -93,7 +95,6 @@ async function loadAvailableLessons(userId, profile = {}) {
         const formattedDate = date.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
         const formattedTime = date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
-        // Determinazione dello stato del pulsante
         let buttonHtml = '';
         if (isBooked) {
             buttonHtml = `
@@ -137,7 +138,7 @@ async function loadAvailableLessons(userId, profile = {}) {
     }).join('');
 }
 
-// Esponi la funzione a livello globale per renderla accessibile dall'onclick dell'HTML
+// Gestione Prenotazioni con invio Notifica integrato
 window.toggleBooking = async function(lessonId, userId, isBooked) {
     const sb = window.supabaseClient;
 
@@ -150,18 +151,21 @@ window.toggleBooking = async function(lessonId, userId, isBooked) {
                 .eq('user_id', userId);
             
             if (error) throw error;
+
+            await createNotification(userId, 'Prenotazione Annullata', 'Hai annullato la tua prenotazione per la lezione.', 'warning');
         } else {
             const { error } = await sb
                 .from('bookings')
                 .insert([{ lesson_id: lessonId, user_id: userId }]);
             
             if (error) throw error;
+
+            await createNotification(userId, 'Prenotazione Confermata!', 'Il tuo posto alla lezione è stato riservato con successo.', 'success');
         }
 
-        // Ricarica le lezioni riutilizzando i dati di sessione
-        const { data: { user } } = await sb.auth.getUser();
         const { data: profile } = await sb.from('profiles').select('*').eq('id', userId).single();
         await loadAvailableLessons(userId, profile);
+        await loadNotifications(userId);
     } catch (err) {
         console.error("Errore prenotazione:", err);
         alert("Impossibile completare l'operazione: " + (err.message || err));
@@ -223,21 +227,18 @@ function initCertUploadForm(user) {
         try {
             const sb = window.supabaseClient;
 
-            // 1. Upload File nello Storage Supabase
             const { error: uploadErr } = await sb.storage
                 .from('certificates')
                 .upload(filePath, file, { upsert: true });
 
             if (uploadErr) throw uploadErr;
 
-            // 2. Recupera URL Pubblico
             const { data: urlData } = sb.storage
                 .from('certificates')
                 .getPublicUrl(filePath);
 
             const publicUrl = urlData.publicUrl;
 
-            // 3. Aggiorna Profilo Utente
             const { error: updateErr } = await sb
                 .from('profiles')
                 .update({
@@ -247,6 +248,8 @@ function initCertUploadForm(user) {
                 .eq('id', user.id);
 
             if (updateErr) throw updateErr;
+
+            await createNotification(user.id, 'Certificato Caricato', 'Il tuo certificato medico è stato inviato correttamente.', 'success');
 
             alert("Certificato medico caricato con successo!");
             location.reload();
@@ -258,4 +261,137 @@ function initCertUploadForm(user) {
             btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Carica Certificato Medico`;
         }
     };
+}
+
+/* ==========================================================================
+   SISTEMA DI NOTIFICHE
+   ========================================================================== */
+
+// Inizializza notifiche e interfaccia
+async function initNotifications(userId) {
+    const btn = document.getElementById('btn-notifications');
+    const dropdown = document.getElementById('notif-dropdown');
+
+    if (btn && dropdown) {
+        btn.onclick = () => dropdown.classList.toggle('hidden');
+
+        document.addEventListener('click', (e) => {
+            if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    }
+
+    await loadNotifications(userId);
+    subscribeToRealtimeNotifications(userId);
+}
+
+// Carica lista notifiche
+async function loadNotifications(userId) {
+    const sb = window.supabaseClient;
+    const container = document.getElementById('notif-list-container');
+    const badge = document.getElementById('notif-badge');
+    if (!container) return;
+
+    const { data: list, error } = await sb
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(15);
+
+    if (error || !list || list.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">Nessuna notifica presente.</p>`;
+        if (badge) badge.classList.add('hidden');
+        return;
+    }
+
+    const unreadCount = list.filter(n => !n.is_read).length;
+
+    if (badge) {
+        if (unreadCount > 0) {
+            badge.innerText = unreadCount;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    container.innerHTML = list.map(n => {
+        let iconClass = 'fa-circle-info text-brand-cyan';
+        if (n.type === 'warning') iconClass = 'fa-triangle-exclamation text-yellow-400';
+        if (n.type === 'success') iconClass = 'fa-circle-check text-brand-lime';
+        if (n.type === 'chat') iconClass = 'fa-comment text-brand-pink';
+
+        const time = new Date(n.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+        const date = new Date(n.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
+
+        return `
+            <div class="p-3 rounded-xl border ${n.is_read ? 'bg-brand-card/40 border-brand-border/40' : 'bg-brand-card border-brand-cyan/40'} flex gap-3 items-start transition">
+                <i class="fa-solid ${iconClass} mt-0.5 text-sm"></i>
+                <div class="flex-grow space-y-0.5">
+                    <div class="flex justify-between items-center">
+                        <h5 class="text-xs font-bold text-white">${n.title}</h5>
+                        <span class="text-[9px] text-gray-400">${date} ${time}</span>
+                    </div>
+                    <p class="text-[11px] text-gray-300 leading-snug">${n.message}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Helper creazione notifica
+async function createNotification(userId, title, message, type = 'info') {
+    const sb = window.supabaseClient;
+    await sb.from('notifications').insert([{
+        user_id: userId,
+        title: title,
+        message: message,
+        type: type
+    }]);
+}
+
+// Segna tutte come lette
+window.markAllNotificationsAsRead = async function() {
+    if (!currentSessionData) return;
+    const sb = window.supabaseClient;
+    
+    await sb
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', currentSessionData.user.id);
+
+    await loadNotifications(currentSessionData.user.id);
+};
+
+// Controllo automatico notifiche per certificato in scadenza o scaduto
+async function checkCertExpirationNotification(userId, profile) {
+    const dataScad = profile.medical_certificate_expiration || profile.certificato_scadenza;
+    if (!dataScad) return;
+
+    const today = new Date();
+    const expDate = new Date(dataScad);
+    const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) {
+        await createNotification(userId, 'Certificato Scaduto!', 'Il tuo certificato medico è scaduto. Caricane uno nuovo per sbloccare le prenotazioni.', 'warning');
+    } else if (diffDays <= 15) {
+        await createNotification(userId, 'Certificato in Scadenza', `Il tuo certificato medico scadrà tra ${diffDays} giorni. Ricordati di rinnovarlo!`, 'warning');
+    }
+}
+
+// Realtime listener
+function subscribeToRealtimeNotifications(userId) {
+    const sb = window.supabaseClient;
+    sb.channel('user-notifications')
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`
+        }, () => {
+            loadNotifications(userId);
+        })
+        .subscribe();
 }
