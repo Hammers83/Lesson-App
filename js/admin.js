@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentSessionData = await checkAuthAndRedirect('admin');
     if (!currentSessionData) return;
 
+    // Imposta il nome dell'Istruttore nell'intestazione
+    setInstructorName(currentSessionData.profile);
+
     if (typeof renderNavbar === 'function') {
         renderNavbar(currentSessionData.profile);
     }
@@ -31,11 +34,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initChat(currentSessionData.profile);
     }
 
-    const lessonForm = document.getElementById('form-create-lesson');
-    if (lessonForm) {
-        lessonForm.addEventListener('submit', handleCreateLesson);
-    }
+    // Gestione Eventi Modale Creazione Lezione
+    setupModalEvents();
 });
+
+function setInstructorName(profile) {
+    const titleEl = document.getElementById('instructor-welcome-title');
+    if (titleEl && profile) {
+        const nome = profile.nome || '';
+        const cognome = profile.cognome || '';
+        const fullName = `${nome} ${cognome}`.trim();
+        titleEl.textContent = fullName ? `Istruttore ${fullName}` : 'Pannello Istruttore';
+    }
+}
+
+function setupModalEvents() {
+    const modal = document.getElementById('modal-create-lesson');
+    const openBtn = document.getElementById('btn-open-create-modal');
+    const closeBtn = document.getElementById('btn-close-modal');
+    const cancelBtn = document.getElementById('btn-cancel-modal');
+    const lessonForm = document.getElementById('form-create-lesson');
+
+    const openModal = () => modal && modal.classList.remove('hidden');
+    const closeModal = () => modal && modal.classList.add('hidden');
+
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    if (lessonForm) {
+        lessonForm.addEventListener('submit', async (e) => {
+            await handleCreateLesson(e);
+            closeModal();
+        });
+    }
+}
 
 async function loadAdminDashboard() {
     await loadStudentsTable();
@@ -68,7 +101,6 @@ async function loadStudentsTable() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Rendering efficiente tramite map/join per evitare ridisegni multipli del DOM
     tbody.innerHTML = profiles.map(p => {
         const dataScad = p.medical_certificate_expiration || p.scadenza_certificato || p.certificato_scadenza;
         const certUrl = p.medical_certificate_url || p.certificato_url;
@@ -90,7 +122,6 @@ async function loadStudentsTable() {
             }
         }
 
-        // Gestione Link/Download Certificato
         let docLinkHtml = `<span class="text-xs text-gray-500">Nessun file</span>`;
         if (certUrl) {
             const sanitizedUrl = escapeHtml(certUrl);
