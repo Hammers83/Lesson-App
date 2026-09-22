@@ -5,11 +5,25 @@ let chartCertificatiInstance = null;
 // Gestore globale del client Supabase
 const getSupabase = () => window.supabaseClient || window.supabase;
 
+// Utility per sanificare il testo ed evitare vulnerabilità XSS
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     currentSessionData = await checkAuthAndRedirect('admin');
     if (!currentSessionData) return;
 
-    renderNavbar(currentSessionData.profile);
+    if (typeof renderNavbar === 'function') {
+        renderNavbar(currentSessionData.profile);
+    }
+    
     await loadAdminDashboard();
     
     // Inizializza la chat per l'admin
@@ -31,14 +45,18 @@ async function loadAdminDashboard() {
 
 async function loadStudentsTable() {
     const sb = getSupabase();
-    const { data: profiles, error } = await sb.from('profiles').select('*').eq('is_admin', false);
+    const { data: profiles, error } = await sb
+        .from('profiles')
+        .select('*')
+        .eq('is_admin', false)
+        .order('nome', { ascending: true });
+        
     const tbody = document.getElementById('table-students-body');
-    
     if (!tbody) return;
-    tbody.innerHTML = '';
 
     if (error) {
         console.error("Errore caricamento allieve:", error);
+        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-brand-pink">Errore nel caricamento dei dati.</td></tr>`;
         return;
     }
 
@@ -47,16 +65,19 @@ async function loadStudentsTable() {
         return;
     }
 
-    profiles.forEach(p => {
-        // Controllo e tolleranza su varie diciture delle colonne
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Rendering efficiente tramite map/join per evitare ridisegni multipli del DOM
+    tbody.innerHTML = profiles.map(p => {
         const dataScad = p.medical_certificate_expiration || p.scadenza_certificato || p.certificato_scadenza;
         const certUrl = p.medical_certificate_url || p.certificato_url;
 
         let badgeHtml = `<span class="px-2 py-1 bg-red-500/20 text-red-400 border border-red-500/40 text-[10px] font-black rounded-full uppercase">Mancante</span>`;
 
         if (dataScad) {
-            const today = new Date();
             const expDate = new Date(dataScad);
+            expDate.setHours(23, 59, 59, 999);
             const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
             const formattedDate = expDate.toLocaleDateString('it-IT');
 
@@ -72,32 +93,34 @@ async function loadStudentsTable() {
         // Gestione Link/Download Certificato
         let docLinkHtml = `<span class="text-xs text-gray-500">Nessun file</span>`;
         if (certUrl) {
-            // Se è un URL completo di Supabase Storage lo apre direttamente, altrimenti tenta tramite signedUrl
+            const sanitizedUrl = escapeHtml(certUrl);
             if (certUrl.startsWith('http://') || certUrl.startsWith('https://')) {
                 docLinkHtml = `
-                    <a href="${certUrl}" target="_blank" class="px-2.5 py-1 bg-brand-card border border-brand-cyan/40 text-brand-cyan hover:bg-brand-cyan hover:text-black rounded-lg text-xs font-bold transition inline-flex items-center gap-1">
+                    <a href="${sanitizedUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-brand-card border border-brand-cyan/40 text-brand-cyan hover:bg-brand-cyan hover:text-black rounded-lg text-xs font-bold transition inline-flex items-center gap-1">
                         <i class="fa-solid fa-file-pdf"></i> Vedi PDF
                     </a>`;
             } else {
                 docLinkHtml = `
-                    <button onclick="downloadCert('${certUrl}')" class="px-2.5 py-1 bg-brand-card border border-brand-cyan/40 text-brand-cyan hover:bg-brand-cyan hover:text-black rounded-lg text-xs font-bold transition inline-flex items-center gap-1">
+                    <button onclick="downloadCert('${sanitizedUrl}')" class="px-2.5 py-1 bg-brand-card border border-brand-cyan/40 text-brand-cyan hover:bg-brand-cyan hover:text-black rounded-lg text-xs font-bold transition inline-flex items-center gap-1">
                         <i class="fa-solid fa-file-pdf"></i> Vedi PDF
                     </button>`;
             }
         }
 
-        tbody.innerHTML += `
+        const avatar = p.avatar_url ? escapeHtml(p.avatar_url) : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome || 'A')}&background=CCFF00&color=000`;
+
+        return `
             <tr class="hover:bg-white/5 transition">
                 <td class="py-3 px-2">
-                    <img src="${p.avatar_url || 'https://via.placeholder.com/40'}" class="w-9 h-9 rounded-xl object-cover border border-brand-border">
+                    <img src="${avatar}" class="w-9 h-9 rounded-xl object-cover border border-brand-border" alt="Avatar">
                 </td>
-                <td class="py-3 px-2 font-bold text-white">${p.nome || ''} ${p.cognome || ''}</td>
-                <td class="py-3 px-2 text-xs text-gray-400">${p.email || '-'}<br><span class="text-gray-500">${p.telefono || ''}</span></td>
+                <td class="py-3 px-2 font-bold text-white">${escapeHtml(p.nome)} ${escapeHtml(p.cognome)}</td>
+                <td class="py-3 px-2 text-xs text-gray-400">${escapeHtml(p.email || '-')}<br><span class="text-gray-500">${escapeHtml(p.telefono)}</span></td>
                 <td class="py-3 px-2">${badgeHtml}</td>
                 <td class="py-3 px-2">${docLinkHtml}</td>
             </tr>
         `;
-    });
+    }).join('');
 }
 
 async function loadAdminLessons() {
@@ -105,7 +128,6 @@ async function loadAdminLessons() {
     const container = document.getElementById('admin-lessons-container');
     if (!container) return;
 
-    // Recupera lezioni con i profili delle allieve prenotate
     const { data: lessons, error } = await sb
         .from('lessons')
         .select(`
@@ -117,6 +139,7 @@ async function loadAdminLessons() {
         .order('datetime', { ascending: true });
 
     if (error || !lessons) {
+        console.error("Errore caricamento lezioni:", error);
         container.innerHTML = `<p class="text-xs text-brand-pink">Errore nel caricamento delle lezioni.</p>`;
         return;
     }
@@ -137,7 +160,7 @@ async function loadAdminLessons() {
             <div class="bg-brand-dark p-5 rounded-2xl border border-brand-border space-y-3">
                 <div class="flex justify-between items-center border-b border-brand-border pb-2">
                     <div>
-                        <h4 class="text-base font-black text-white">${lesson.title}</h4>
+                        <h4 class="text-base font-black text-white">${escapeHtml(lesson.title || 'Lezione')}</h4>
                         <span class="text-xs text-brand-cyan font-bold">${formattedDate} - ${formattedTime}</span>
                     </div>
                     <span class="text-xs bg-brand-card px-2.5 py-1 rounded-lg text-white font-bold border border-brand-border">
@@ -151,8 +174,8 @@ async function loadAdminLessons() {
                         <ul class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                             ${iscritti.map(student => `
                                 <li class="text-xs bg-brand-card p-2 rounded-xl flex justify-between items-center border border-brand-border/50">
-                                    <span class="font-bold text-white"><i class="fa-solid fa-user text-brand-lime mr-1.5"></i>${student.nome || ''} ${student.cognome || ''}</span>
-                                    <span class="text-[10px] text-gray-400">${student.telefono || student.email || ''}</span>
+                                    <span class="font-bold text-white"><i class="fa-solid fa-user text-brand-lime mr-1.5"></i>${escapeHtml(student.nome)} ${escapeHtml(student.cognome)}</span>
+                                    <span class="text-[10px] text-gray-400">${escapeHtml(student.telefono || student.email)}</span>
                                 </li>
                             `).join('')}
                         </ul>
@@ -165,23 +188,34 @@ async function loadAdminLessons() {
     }).join('');
 }
 
-async function downloadCert(path) {
+window.downloadCert = async function(path) {
     const sb = getSupabase();
     const { data, error } = await sb.storage.from('certificates').createSignedUrl(path, 60);
     if (error) {
         alert("Errore nel download del certificato: " + error.message);
         return;
     }
-    if (data) window.open(data.signedUrl, '_blank');
-}
+    if (data && data.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+    }
+};
 
 async function handleCreateLesson(e) {
     e.preventDefault();
     const sb = getSupabase();
     
-    const title = document.getElementById('lesson-title').value;
-    const datetime = document.getElementById('lesson-datetime').value;
-    const capacity = parseInt(document.getElementById('lesson-capacity').value);
+    const titleInput = document.getElementById('lesson-title');
+    const datetimeInput = document.getElementById('lesson-datetime');
+    const capacityInput = document.getElementById('lesson-capacity');
+
+    const title = titleInput.value.trim();
+    const datetime = datetimeInput.value;
+    const capacity = parseInt(capacityInput.value, 10);
+
+    if (!title || !datetime || isNaN(capacity)) {
+        alert("Compila tutti i campi correttamente.");
+        return;
+    }
 
     const { error } = await sb.from('lessons').insert([{ 
         title: title, 
@@ -199,18 +233,32 @@ async function handleCreateLesson(e) {
 }
 
 async function renderAnalytics() {
+    if (typeof Chart === 'undefined') {
+        console.warn("Chart.js non è stato caricato.");
+        return;
+    }
+
     const sb = getSupabase();
     const { data: profiles } = await sb.from('profiles').select('*').eq('is_admin', false);
-    const { data: lessons } = await sb.from('lessons').select('*, bookings(count)');
+    const { data: lessons } = await sb.from('lessons').select('title, bookings(count)');
 
     let validi = 0, scaduti = 0;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
     if (profiles) {
         profiles.forEach(p => {
             const dataScad = p.medical_certificate_expiration || p.scadenza_certificato || p.certificato_scadenza;
-            if (!dataScad || new Date(dataScad) < new Date()) {
+            if (!dataScad) {
                 scaduti++;
             } else {
-                validi++;
+                const expDate = new Date(dataScad);
+                expDate.setHours(23, 59, 59, 999);
+                if (expDate < today) {
+                    scaduti++;
+                } else {
+                    validi++;
+                }
             }
         });
     }
@@ -228,8 +276,8 @@ async function renderAnalytics() {
         });
     }
 
-    const labels = lessons ? lessons.map(l => l.title || l.titolo || 'Lezione') : [];
-    const counts = lessons ? lessons.map(l => l.bookings[0]?.count || 0) : [];
+    const labels = lessons ? lessons.map(l => l.title || 'Lezione') : [];
+    const counts = lessons ? lessons.map(l => (l.bookings && l.bookings[0]) ? l.bookings[0].count : 0) : [];
 
     const chartPresEl = document.getElementById('chart-presenze');
     if (chartPresEl) {
