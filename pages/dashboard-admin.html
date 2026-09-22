@@ -47,22 +47,6 @@
             <span class="px-3 py-1 bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 text-xs font-black rounded-full uppercase tracking-widest">Admin Angelo</span>
         </div>
 
-        <!-- GRAFICI ANALYTICS -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="glass-panel p-6 rounded-3xl">
-                <h4 class="text-sm font-bold uppercase text-gray-300 mb-4">Presenze per Sessione</h4>
-                <div class="relative h-64 w-full">
-                    <canvas id="chart-presenze"></canvas>
-                </div>
-            </div>
-            <div class="glass-panel p-6 rounded-3xl">
-                <h4 class="text-sm font-bold uppercase text-gray-300 mb-4">Stato Certificati Medici</h4>
-                <div class="relative h-64 w-full flex justify-center">
-                    <canvas id="chart-certificati"></canvas>
-                </div>
-            </div>
-        </div>
-
         <!-- FORM CREAZIONE LEZIONE -->
         <div class="glass-panel p-6 rounded-3xl">
             <h3 class="text-lg font-black uppercase text-white mb-4">Programma Nuova Lezione</h3>
@@ -129,6 +113,22 @@
                 <i class="fa-solid fa-paper-plane"></i>
             </button>
         </form>
+        </div>
+
+        <!-- GRAFICI ANALYTICS -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-panel p-6 rounded-3xl">
+                <h4 class="text-sm font-bold uppercase text-gray-300 mb-4">Presenze per Sessione</h4>
+                <div class="relative h-64 w-full">
+                    <canvas id="chart-presenze"></canvas>
+                </div>
+            </div>
+            <div class="glass-panel p-6 rounded-3xl">
+                <h4 class="text-sm font-bold uppercase text-gray-300 mb-4">Stato Certificati Medici</h4>
+                <div class="relative h-64 w-full flex justify-center">
+                    <canvas id="chart-certificati"></canvas>
+                </div>
+            </div>
         </div>
         
     </main>
