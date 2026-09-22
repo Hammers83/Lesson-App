@@ -82,6 +82,34 @@
             </button>
         </form>
         </div>
+
+        <!-- Sezione Certificato Medico -->
+        <div class="glass-panel p-6 rounded-3xl space-y-4 border-l-4 border-l-brand-lime">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-black uppercase text-white flex items-center gap-2">
+                    <i class="fa-solid fa-file-medical text-brand-lime"></i> Il Mio Certificato Medico
+                </h3>
+                <span id="cert-status-badge" class="px-3 py-1 text-xs font-black rounded-full uppercase">Caricamento...</span>
+            </div>
+        
+            <form id="form-upload-cert" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Data di Scadenza</label>
+                        <input type="date" id="cert-expiration-date" required
+                            class="w-full px-4 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-white text-xs focus:outline-none focus:border-brand-lime">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">File Certificato (PDF/Foto)</label>
+                        <input type="file" id="cert-file-input" accept="image/*,application/pdf" required
+                            class="w-full px-4 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-xs focus:outline-none focus:border-brand-lime file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-brand-lime file:text-black">
+                    </div>
+                </div>
+                <button type="submit" id="btn-upload-cert" class="btn-gradient text-black font-black w-full py-2.5 rounded-xl text-xs uppercase hover:opacity-90 transition">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Carica Certificato Medico
+                </button>
+            </form>
+        </div>
         
     </main>
 
