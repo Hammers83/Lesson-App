@@ -141,7 +141,7 @@
 
     </main>
 
-    <!-- MODALE PER NUOVA LEZIONE -->
+    <!-- MODALE PER CREARE NUOVA LEZIONE -->
     <div id="modal-create-lesson" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-brand-card border border-brand-border p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl relative">
             <div class="flex justify-between items-center border-b border-brand-border pb-3">
@@ -175,6 +175,47 @@
                     </button>
                     <button type="submit" class="px-5 py-2.5 btn-gradient text-black font-black uppercase text-xs rounded-xl shadow-lg hover:opacity-90 transition">
                         Pubblica Lezione
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODALE PER MODIFICARE LEZIONE -->
+    <div id="modal-edit-lesson" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-brand-card border border-brand-border p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                <h3 class="text-lg font-black uppercase text-white flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-brand-cyan"></i> Modifica Lezione
+                </h3>
+                <button id="btn-close-edit-modal" class="text-gray-400 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <form id="form-edit-lesson" class="space-y-4">
+                <input type="hidden" id="edit-lesson-id">
+                <div>
+                    <label for="edit-lesson-title" class="block text-xs font-bold text-gray-400 uppercase mb-1">Titolo Lezione</label>
+                    <input type="text" id="edit-lesson-title" required 
+                        class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                </div>
+                <div>
+                    <label for="edit-lesson-datetime" class="block text-xs font-bold text-gray-400 uppercase mb-1">Data e Ora Lezione</label>
+                    <input type="datetime-local" id="edit-lesson-datetime" required 
+                        class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                </div>
+                <div>
+                    <label for="edit-lesson-capacity" class="block text-xs font-bold text-gray-400 uppercase mb-1">Capienza Massima</label>
+                    <input type="number" id="edit-lesson-capacity" min="1" required 
+                        class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" id="btn-cancel-edit-modal" class="px-4 py-2.5 bg-brand-dark border border-brand-border text-gray-300 rounded-xl text-xs font-bold uppercase hover:bg-white/5 transition">
+                        Annulla
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 bg-brand-cyan text-black font-black uppercase text-xs rounded-xl shadow-lg hover:opacity-90 transition">
+                        Salva Modifiche
                     </button>
                 </div>
             </form>
