@@ -8,7 +8,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentSessionData = authData;
 
     // 2. Render della Navbar
-    renderNavbar(authData.profile);
+    if (typeof renderNavbar === 'function') {
+        renderNavbar(authData.profile);
+    }
 
     // 3. Carica i dati del profilo e gestisci lo stato del certificato
     renderStudentProfile(authData.profile);
@@ -17,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 4. Inizializza Sistema Notifiche
     await initNotifications(authData.user.id);
-    checkCertExpirationNotification(authData.user.id, authData.profile);
+    await checkCertExpirationNotification(authData.user.id, authData.profile);
 
     // 5. Carica la lista delle lezioni
     await loadAvailableLessons(authData.user.id, authData.profile);
@@ -27,6 +29,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initChat(authData.profile);
     }
 });
+
+// Helper di utilità per evitare XSS (Escape HTML)
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
 // Mostra i dati del profilo (Nome, Saluto e Stato Certificato)
 function renderStudentProfile(profile) {
@@ -40,15 +53,17 @@ function renderStudentProfile(profile) {
 
     if (avatarEl) {
         const initial = profile.nome ? profile.nome.charAt(0).toUpperCase() : 'Z';
-        avatarEl.src = profile.avatar_url || `https://ui-avatars.com/api/?name=${initial}&background=CCFF00&color=000`;
+        avatarEl.src = profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(initial)}&background=CCFF00&color=000`;
     }
 
     if (certStatusEl) {
         const dataScad = profile.medical_certificate_expiration || profile.certificato_scadenza;
         if (dataScad) {
             const scadenza = new Date(dataScad);
+            scadenza.setHours(23, 59, 59, 999); // Imposta fine giornata
             const oggi = new Date();
-            if (scadenza > oggi) {
+
+            if (scadenza >= oggi) {
                 certStatusEl.innerHTML = `<span class="text-brand-lime font-bold"><i class="fa-solid fa-circle-check"></i> Certificato Medico Valido</span> (Scadenza: ${scadenza.toLocaleDateString('it-IT')})`;
             } else {
                 certStatusEl.innerHTML = `<span class="text-brand-pink font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Certificato Scaduto</span> (${scadenza.toLocaleDateString('it-IT')})`;
@@ -72,7 +87,7 @@ async function loadAvailableLessons(userId, profile = {}) {
 
     if (error) {
         console.error("Errore recupero lezioni:", error);
-        container.innerHTML = `<p class="text-xs text-brand-pink">Errore nel caricamento delle lezioni: ${error.message}</p>`;
+        container.innerHTML = `<p class="text-xs text-brand-pink">Errore nel caricamento delle lezioni: ${escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -82,7 +97,12 @@ async function loadAvailableLessons(userId, profile = {}) {
     }
 
     const certDate = profile.medical_certificate_expiration || profile.certificato_scadenza;
-    const isCertValid = certDate ? new Date(certDate) > new Date() : false;
+    let isCertValid = false;
+    if (certDate) {
+        const exp = new Date(certDate);
+        exp.setHours(23, 59, 59, 999);
+        isCertValid = exp >= new Date();
+    }
 
     container.innerHTML = lessons.map(lesson => {
         const bookingsList = lesson.bookings || [];
@@ -103,7 +123,7 @@ async function loadAvailableLessons(userId, profile = {}) {
                 </button>`;
         } else if (!isCertValid) {
             buttonHtml = `
-                <button disabled class="w-full py-2.5 bg-gray-800 text-red-400 border border-red-500/20 text-xs font-bold rounded-xl cursor-not-allowed">
+                <button disabled class="w-full py-2.5 bg-gray-800 text-red-400 border border-red-500/20 text-xs font-bold rounded-xl cursor-not-allowed" title="Carica un certificato medico valido dal tuo profilo per prenotare">
                     <i class="fa-solid fa-lock mr-1"></i> Carica Certificato per Prenotare
                 </button>`;
         } else if (isFull) {
@@ -127,7 +147,7 @@ async function loadAvailableLessons(userId, profile = {}) {
                             ${bookedCount}/${capacity} Posti
                         </span>
                     </div>
-                    <h4 class="text-base font-black text-white">${lesson.title || 'Zumba Fitness'}</h4>
+                    <h4 class="text-base font-black text-white">${escapeHtml(lesson.title || 'Zumba Fitness')}</h4>
                 </div>
 
                 <div>
@@ -138,7 +158,7 @@ async function loadAvailableLessons(userId, profile = {}) {
     }).join('');
 }
 
-// Gestione Prenotazioni con invio Notifica integrato
+// Gestione Prenotazioni
 window.toggleBooking = async function(lessonId, userId, isBooked) {
     const sb = window.supabaseClient;
 
@@ -186,7 +206,10 @@ function checkCertificateStatus(profile) {
     }
 
     const today = new Date();
+    today.setHours(0,0,0,0);
     const expDate = new Date(dataScad);
+    expDate.setHours(0,0,0,0);
+    
     const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
@@ -214,6 +237,11 @@ function initCertUploadForm(user) {
 
         if (!fileInput.files || fileInput.files.length === 0) {
             alert("Seleziona un file da caricare.");
+            return;
+        }
+
+        if (!expInput.value) {
+            alert("Inserisci la data di scadenza del certificato.");
             return;
         }
 
@@ -267,7 +295,6 @@ function initCertUploadForm(user) {
    SISTEMA DI NOTIFICHE
    ========================================================================== */
 
-// Inizializza notifiche e interfaccia
 async function initNotifications(userId) {
     const btn = document.getElementById('btn-notifications');
     const dropdown = document.getElementById('notif-dropdown');
@@ -286,7 +313,6 @@ async function initNotifications(userId) {
     subscribeToRealtimeNotifications(userId);
 }
 
-// Carica lista notifiche
 async function loadNotifications(userId) {
     const sb = window.supabaseClient;
     const container = document.getElementById('notif-list-container');
@@ -331,17 +357,16 @@ async function loadNotifications(userId) {
                 <i class="fa-solid ${iconClass} mt-0.5 text-sm"></i>
                 <div class="flex-grow space-y-0.5">
                     <div class="flex justify-between items-center">
-                        <h5 class="text-xs font-bold text-white">${n.title}</h5>
+                        <h5 class="text-xs font-bold text-white">${escapeHtml(n.title)}</h5>
                         <span class="text-[9px] text-gray-400">${date} ${time}</span>
                     </div>
-                    <p class="text-[11px] text-gray-300 leading-snug">${n.message}</p>
+                    <p class="text-[11px] text-gray-300 leading-snug">${escapeHtml(n.message)}</p>
                 </div>
             </div>
         `;
     }).join('');
 }
 
-// Helper creazione notifica
 async function createNotification(userId, title, message, type = 'info') {
     const sb = window.supabaseClient;
     await sb.from('notifications').insert([{
@@ -352,7 +377,6 @@ async function createNotification(userId, title, message, type = 'info') {
     }]);
 }
 
-// Segna tutte come lette
 window.markAllNotificationsAsRead = async function() {
     if (!currentSessionData) return;
     const sb = window.supabaseClient;
@@ -365,14 +389,32 @@ window.markAllNotificationsAsRead = async function() {
     await loadNotifications(currentSessionData.user.id);
 };
 
-// Controllo automatico notifiche per certificato in scadenza o scaduto
+// FIX: Evita notifiche duplicate controllando se esiste già una notifica inviata nelle ultime 24 ore
 async function checkCertExpirationNotification(userId, profile) {
     const dataScad = profile.medical_certificate_expiration || profile.certificato_scadenza;
     if (!dataScad) return;
 
     const today = new Date();
+    today.setHours(0,0,0,0);
     const expDate = new Date(dataScad);
+    expDate.setHours(0,0,0,0);
+    
     const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 15) return; // Non è in scadenza imminente né scaduto
+
+    const sb = window.supabaseClient;
+    const past24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    // Verifica se una notifica di warning è già stata inviata di recente
+    const { data: existingNotifs } = await sb
+        .from('notifications')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('type', 'warning')
+        .gte('created_at', past24h);
+
+    if (existingNotifs && existingNotifs.length > 0) return; // Già notificata recentemente
 
     if (diffDays <= 0) {
         await createNotification(userId, 'Certificato Scaduto!', 'Il tuo certificato medico è scaduto. Caricane uno nuovo per sbloccare le prenotazioni.', 'warning');
@@ -381,10 +423,14 @@ async function checkCertExpirationNotification(userId, profile) {
     }
 }
 
-// Realtime listener
+// Realtime Listener
 function subscribeToRealtimeNotifications(userId) {
     const sb = window.supabaseClient;
-    sb.channel('user-notifications')
+    
+    // Rimuovi eventuali canali precedenti per evitare perdite di memoria o listener duplicati
+    sb.removeAllChannels();
+
+    sb.channel(`user-notifications-${userId}`)
         .on('postgres_changes', {
             event: 'INSERT',
             schema: 'public',
