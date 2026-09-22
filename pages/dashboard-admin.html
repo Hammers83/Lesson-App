@@ -58,13 +58,13 @@
             </form>
         </div>
 
-        <!-- LISTA LEZIONI E ISCRITTI (In dashboard-admin.html) -->
+        <!-- LISTA LEZIONI E ISCRITTI -->
         <div class="glass-panel p-6 rounded-3xl space-y-4">
             <h3 class="text-lg font-black uppercase text-white flex items-center gap-2">
-                <i class="fa-solid fa-list-check text-brand-cyan"></i> Programmazione Lezioni & Elenco Iscritti
+                <i class="fa-solid fa-list-check text-brand-cyan"></i> Programmazione Lezioni &amp; Elenco Iscritti
             </h3>
             <div id="admin-lessons-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Verrà popolato da admin.js -->
+                <!-- Popolato da admin.js -->
             </div>
         </div>
         
@@ -87,32 +87,32 @@
             </div>
         </div>
 
-        <!-- Chat -->
+        <!-- CHAT COMMUNITY & PRIVATA -->
         <div class="glass-panel p-6 rounded-3xl space-y-4">
-        <div class="flex justify-between items-center border-b border-brand-border pb-3">
-            <h3 class="text-lg font-black uppercase text-white flex items-center gap-2">
-                <i class="fa-solid fa-comments text-brand-cyan"></i> Community & Chat
-            </h3>
-            <!-- Selettore per passare da Chat di Gruppo a Privata -->
-            <select id="chat-type-select" class="bg-brand-dark border border-brand-border text-white text-xs rounded-xl p-2 font-bold focus:outline-none">
-                <option value="group">📢 Chat di Gruppo</option>
-                <option value="private">🔒 Messaggio Privato Istruttore</option>
-            </select>
-        </div>
-    
-        <!-- Area dei Messaggi -->
-        <div id="chat-messages-container" class="h-64 overflow-y-auto space-y-3 p-2 bg-brand-dark/50 rounded-2xl border border-brand-border">
-            <!-- I messaggi verranno caricati dinamicamente -->
-        </div>
-    
-        <!-- Form Invio -->
-        <form id="chat-form" class="flex gap-2">
-            <input type="text" id="chat-input" placeholder="Scrivi un messaggio..." required 
-                class="flex-grow bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-brand-cyan">
-            <button type="submit" class="btn-gradient text-black font-black px-5 py-2.5 rounded-xl text-xs uppercase hover:opacity-90 transition">
-                <i class="fa-solid fa-paper-plane"></i>
-            </button>
-        </form>
+            <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                <h3 class="text-lg font-black uppercase text-white flex items-center gap-2">
+                    <i class="fa-solid fa-comments text-brand-cyan"></i> Community &amp; Chat
+                </h3>
+                <!-- Selettore Canale Chat -->
+                <select id="chat-type-select" class="bg-brand-dark border border-brand-border text-white text-xs rounded-xl p-2 font-bold focus:outline-none focus:border-brand-cyan">
+                    <option value="group">📢 Chat di Gruppo</option>
+                    <option value="private">🔒 Messaggio Privato Istruttore</option>
+                </select>
+            </div>
+        
+            <!-- Area dove chat.js inietterà dinamicamente il menu a tendina allieve 'student-selector-wrapper' quando in modalità 'private' -->
+            <div id="chat-messages-container" class="h-64 overflow-y-auto space-y-3 p-2 bg-brand-dark/50 rounded-2xl border border-brand-border">
+                <!-- Messaggi popolati da chat.js -->
+            </div>
+        
+            <!-- Form Invio -->
+            <form id="chat-form" class="flex gap-2">
+                <input type="text" id="chat-input" placeholder="Scrivi un messaggio..." required 
+                    class="flex-grow bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-brand-cyan">
+                <button type="submit" class="btn-gradient text-black font-black px-5 py-2.5 rounded-xl text-xs uppercase hover:opacity-90 transition">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
         </div>
 
         <!-- GRAFICI ANALYTICS -->
