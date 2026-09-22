@@ -48,10 +48,43 @@ async function loadStudentsTable() {
     }
 
     profiles.forEach(p => {
-        // Controllo campo sia in italiano che inglese per sicurezza
-        const dataScadenza = p.scadenza_certificato || p.certificato_scadenza;
-        const isExpired = dataScadenza ? new Date(dataScadenza) < new Date() : true;
-        const dataFormattata = dataScadenza ? new Date(dataScadenza).toLocaleDateString('it-IT') : 'Non presente';
+        // Controllo e tolleranza su varie diciture delle colonne
+        const dataScad = p.medical_certificate_expiration || p.scadenza_certificato || p.certificato_scadenza;
+        const certUrl = p.medical_certificate_url || p.certificato_url;
+
+        let badgeHtml = `<span class="px-2 py-1 bg-red-500/20 text-red-400 border border-red-500/40 text-[10px] font-black rounded-full uppercase">Mancante</span>`;
+
+        if (dataScad) {
+            const today = new Date();
+            const expDate = new Date(dataScad);
+            const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+            const formattedDate = expDate.toLocaleDateString('it-IT');
+
+            if (diffDays < 0) {
+                badgeHtml = `<span class="px-2 py-1 bg-red-500/20 text-red-400 border border-red-500/40 text-[10px] font-black rounded-full uppercase">Scaduto (${formattedDate})</span>`;
+            } else if (diffDays <= 30) {
+                badgeHtml = `<span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 text-[10px] font-black rounded-full uppercase">In Scadenza (${formattedDate})</span>`;
+            } else {
+                badgeHtml = `<span class="px-2 py-1 bg-brand-lime/20 text-brand-lime border border-brand-lime/40 text-[10px] font-black rounded-full uppercase">Valido (${formattedDate})</span>`;
+            }
+        }
+
+        // Gestione Link/Download Certificato
+        let docLinkHtml = `<span class="text-xs text-gray-500">Nessun file</span>`;
+        if (certUrl) {
+            // Se è un URL completo di Supabase Storage lo apre direttamente, altrimenti tenta tramite signedUrl
+            if (certUrl.startsWith('http://') || certUrl.startsWith('https://')) {
+                docLinkHtml = `
+                    <a href="${certUrl}" target="_blank" class="px-2.5 py-1 bg-brand-card border border-brand-cyan/40 text-brand-cyan hover:bg-brand-cyan hover:text-black rounded-lg text-xs font-bold transition inline-flex items-center gap-1">
+                        <i class="fa-solid fa-file-pdf"></i> Vedi PDF
+                    </a>`;
+            } else {
+                docLinkHtml = `
+                    <button onclick="downloadCert('${certUrl}')" class="px-2.5 py-1 bg-brand-card border border-brand-cyan/40 text-brand-cyan hover:bg-brand-cyan hover:text-black rounded-lg text-xs font-bold transition inline-flex items-center gap-1">
+                        <i class="fa-solid fa-file-pdf"></i> Vedi PDF
+                    </button>`;
+            }
+        }
 
         tbody.innerHTML += `
             <tr class="hover:bg-white/5 transition">
@@ -59,15 +92,9 @@ async function loadStudentsTable() {
                     <img src="${p.avatar_url || 'https://via.placeholder.com/40'}" class="w-9 h-9 rounded-xl object-cover border border-brand-border">
                 </td>
                 <td class="py-3 px-2 font-bold text-white">${p.nome || ''} ${p.cognome || ''}</td>
-                <td class="py-3 px-2 text-xs text-gray-400">${p.email || '-'}<br>${p.telefono || ''}</td>
-                <td class="py-3 px-2 text-xs font-semibold ${isExpired ? 'text-brand-pink' : 'text-brand-lime'}">
-                    ${dataFormattata}
-                </td>
-                <td class="py-3 px-2">
-                    ${p.certificato_url 
-                        ? `<button onclick="downloadCert('${p.certificato_url}')" class="text-brand-cyan hover:underline text-xs font-bold"><i class="fa-solid fa-file-pdf mr-1"></i> PDF</button>` 
-                        : '<span class="text-xs text-gray-500">Assente</span>'}
-                </td>
+                <td class="py-3 px-2 text-xs text-gray-400">${p.email || '-'}<br><span class="text-gray-500">${p.telefono || ''}</span></td>
+                <td class="py-3 px-2">${badgeHtml}</td>
+                <td class="py-3 px-2">${docLinkHtml}</td>
             </tr>
         `;
     });
@@ -142,7 +169,7 @@ async function downloadCert(path) {
     const sb = getSupabase();
     const { data, error } = await sb.storage.from('certificates').createSignedUrl(path, 60);
     if (error) {
-        alert("Errore nel download del certificato.");
+        alert("Errore nel download del certificato: " + error.message);
         return;
     }
     if (data) window.open(data.signedUrl, '_blank');
@@ -152,7 +179,6 @@ async function handleCreateLesson(e) {
     e.preventDefault();
     const sb = getSupabase();
     
-    // Mappatura compatibile sia per campi IT che EN
     const title = document.getElementById('lesson-title').value;
     const datetime = document.getElementById('lesson-datetime').value;
     const capacity = parseInt(document.getElementById('lesson-capacity').value);
@@ -180,7 +206,7 @@ async function renderAnalytics() {
     let validi = 0, scaduti = 0;
     if (profiles) {
         profiles.forEach(p => {
-            const dataScad = p.scadenza_certificato || p.certificato_scadenza;
+            const dataScad = p.medical_certificate_expiration || p.scadenza_certificato || p.certificato_scadenza;
             if (!dataScad || new Date(dataScad) < new Date()) {
                 scaduti++;
             } else {
