@@ -233,3 +233,94 @@ window.toggleBooking = async function(lessonId, userId, isBooked) {
         alert("Impossibile completare l'operazione: " + (err.message || err));
     }
 };
+
+// Gestione Caricamento e Stato Certificato
+function checkCertificateStatus(profile) {
+    const badge = document.getElementById('cert-status-badge');
+    if (!badge) return;
+
+    if (!profile.medical_certificate_expiration) {
+        badge.className = "px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-black rounded-full uppercase";
+        badge.innerText = "Mancante";
+        return;
+    }
+
+    const today = new Date();
+    const expDate = new Date(profile.medical_certificate_expiration);
+    const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+        badge.className = "px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-black rounded-full uppercase";
+        badge.innerText = "Scaduto";
+    } else if (diffDays <= 30) {
+        badge.className = "px-3 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 text-xs font-black rounded-full uppercase";
+        badge.innerText = `In Scadenza (${diffDays} gg)`;
+    } else {
+        badge.className = "px-3 py-1 bg-brand-lime/20 text-brand-lime border border-brand-lime/40 text-xs font-black rounded-full uppercase";
+        badge.innerText = "Valido";
+    }
+}
+
+// Inizializza Evento Submit del Form
+function initCertUploadForm(user) {
+    const form = document.getElementById('form-upload-cert');
+    if (!form) return;
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const fileInput = document.getElementById('cert-file-input');
+        const expInput = document.getElementById('cert-expiration-date');
+        const btn = document.getElementById('btn-upload-cert');
+
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert("Seleziona un file da caricare.");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${user.id}/certificato_${Date.now()}.${fileExt}`;
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Caricamento in corso...`;
+
+        try {
+            const sb = window.supabaseClient;
+
+            // 1. Upload File nello Storage Supabase
+            const { error: uploadErr } = await sb.storage
+                .from('certificates')
+                .upload(filePath, file, { upsert: true });
+
+            if (uploadErr) throw uploadErr;
+
+            // 2. Recupera URL Pubblico
+            const { data: urlData } = sb.storage
+                .from('certificates')
+                .getPublicUrl(filePath);
+
+            const publicUrl = urlData.publicUrl;
+
+            // 3. Aggiorna Profilo Utente
+            const { error: updateErr } = await sb
+                .from('profiles')
+                .update({
+                    medical_certificate_url: publicUrl,
+                    medical_certificate_expiration: expInput.value
+                })
+                .eq('id', user.id);
+
+            if (updateErr) throw updateErr;
+
+            alert("Certificato medico caricato con successo!");
+            location.reload();
+        } catch (err) {
+            console.error("Errore upload certificato:", err);
+            alert("Errore durante il caricamento: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Carica Certificato Medico`;
+        }
+    };
+}
+
