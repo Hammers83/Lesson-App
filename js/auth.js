@@ -1,5 +1,30 @@
 let isLoginMode = true;
 
+// 1. Funzione globale per mostrare / nascondere le password al click dell'occhio
+window.togglePasswordVisibility = function(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+
+    if (!input || !icon) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+};
+
+// 2. Controllo dei requisiti di sicurezza per la password
+function isPasswordStrong(password) {
+    // Almeno 8 caratteri, 1 maiuscola, 1 minuscola, 1 numero e 1 simbolo speciale
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+    return strongPasswordRegex.test(password);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Gestione click sul pulsante "Registrati" / "Accedi"
     document.addEventListener('click', (e) => {
@@ -65,7 +90,12 @@ function renderAuthForm() {
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
-                <input type="password" id="auth-password" required class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                <div class="relative">
+                    <input type="password" id="auth-password" required class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan pr-10">
+                    <button type="button" onclick="togglePasswordVisibility('auth-password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
             </div>
         `;
     } else {
@@ -88,7 +118,6 @@ function renderAuthForm() {
                 </div>
             </div>
 
-            <!-- Data di Nascita SOPRA al Numero di Telefono -->
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Data di Nascita</label>
                 <input type="date" id="signup-data-nascita" required class="w-full px-4 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
@@ -104,15 +133,28 @@ function renderAuthForm() {
                 <input type="email" id="auth-email" required class="w-full px-4 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-3">
                 <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
-                    <input type="password" id="auth-password" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                    <div class="relative">
+                        <input type="password" id="auth-password" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan pr-10">
+                        <button type="button" onclick="togglePasswordVisibility('auth-password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Conferma Password</label>
-                    <input type="password" id="signup-confirm-password" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                    <div class="relative">
+                        <input type="password" id="signup-confirm-password" required class="w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan pr-10">
+                        <button type="button" onclick="togglePasswordVisibility('signup-confirm-password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
+                <p class="text-[10px] text-gray-400">
+                    <i class="fa-solid fa-shield-halved text-brand-cyan mr-1"></i> Min. 8 caratteri: 1 maiuscola, 1 minuscola, 1 numero e 1 simbolo.
+                </p>
             </div>
         `;
     }
@@ -154,8 +196,15 @@ async function handleSignup() {
     const password = document.getElementById('auth-password').value;
     const confirmPassword = document.getElementById('signup-confirm-password').value;
 
+    // 1. Controllo corrispondenza password
     if (password !== confirmPassword) {
         showAuthError("Le password non coincidono.");
+        return;
+    }
+
+    // 2. Controllo requisiti di sicurezza password
+    if (!isPasswordStrong(password)) {
+        showAuthError("La password non soddisfa i requisiti di sicurezza! Deve contenere almeno 8 caratteri, una lettera maiuscola, una minuscola, un numero e un simbolo.");
         return;
     }
 
@@ -164,7 +213,7 @@ async function handleSignup() {
     const dataNascita = document.getElementById('signup-data-nascita').value;
     const telefono = document.getElementById('signup-telefono').value.trim();
 
-    // 1. Inserimento utente su Supabase Auth
+    // 3. Inserimento utente su Supabase Auth
     const { data: authData, error: authError } = await window.supabaseClient.auth.signUp({
         email: email,
         password: password,
@@ -181,7 +230,7 @@ async function handleSignup() {
         return showAuthError("Errore durante la creazione dell'account.");
     }
 
-    // 2. Inserimento record nella tabella profiles
+    // 4. Inserimento record nella tabella profiles
     const { error: profileError } = await window.supabaseClient
         .from('profiles')
         .upsert([{
