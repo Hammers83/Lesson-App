@@ -5,18 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZUMBA con Angelo | Pannello Istruttore</title>
 
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: { lime: '#CCFF00', cyan: '#00E5FF', pink: '#FF007F', dark: '#0B0F19', card: '#131927', border: '#202A40' }
+                        brand: { 
+                            lime: '#CCFF00', 
+                            cyan: '#00E5FF', 
+                            pink: '#FF007F', 
+                            dark: '#0B0F19', 
+                            card: '#131927', 
+                            border: '#202A40' 
+                        }
                     }
                 }
             }
         }
     </script>
+
+    <!-- Librerie Esterne -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -39,6 +49,8 @@
 
     <!-- MAIN DASHBOARD -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 space-y-8">
+        
+        <!-- INTESTAZIONE -->
         <div class="glass-panel p-6 rounded-3xl flex justify-between items-center border-l-4 border-l-brand-cyan">
             <div>
                 <h2 class="text-2xl font-black uppercase text-white">Pannello Istruttore</h2>
@@ -51,10 +63,24 @@
         <div class="glass-panel p-6 rounded-3xl">
             <h3 class="text-lg font-black uppercase text-white mb-4">Programma Nuova Lezione</h3>
             <form id="form-create-lesson" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <input type="text" id="lesson-title" placeholder="Es. Zumba Fitness / Toning" required class="px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm">
-                <input type="datetime-local" id="lesson-datetime" required class="px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm">
-                <input type="number" id="lesson-capacity" value="20" min="1" required class="px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm">
-                <button type="submit" class="py-3 btn-gradient text-black font-black uppercase text-xs rounded-xl shadow-lg">Pubblica Lezione</button>
+                <div>
+                    <label for="lesson-title" class="sr-only">Titolo Lezione</label>
+                    <input type="text" id="lesson-title" placeholder="Es. Zumba Fitness / Toning" required 
+                        class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                </div>
+                <div>
+                    <label for="lesson-datetime" class="sr-only">Data e Ora Lezione</label>
+                    <input type="datetime-local" id="lesson-datetime" required 
+                        class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                </div>
+                <div>
+                    <label for="lesson-capacity" class="sr-only">Capienza Massima</label>
+                    <input type="number" id="lesson-capacity" value="20" min="1" required 
+                        class="w-full px-4 py-3 bg-brand-dark border border-brand-border rounded-xl text-white text-sm focus:outline-none focus:border-brand-cyan">
+                </div>
+                <button type="submit" class="py-3 btn-gradient text-black font-black uppercase text-xs rounded-xl shadow-lg hover:opacity-90 transition">
+                    Pubblica Lezione
+                </button>
             </form>
         </div>
 
@@ -67,7 +93,7 @@
                 <!-- Popolato da admin.js -->
             </div>
         </div>
-        
+
         <!-- TABELLA ALLIEVE -->
         <div class="glass-panel p-6 rounded-3xl">
             <h3 class="text-lg font-black uppercase text-white mb-4">Anagrafica Allieve</h3>
@@ -82,7 +108,9 @@
                             <th class="py-3 px-2">Documento</th>
                         </tr>
                     </thead>
-                    <tbody id="table-students-body" class="divide-y divide-brand-border text-sm"></tbody>
+                    <tbody id="table-students-body" class="divide-y divide-brand-border text-sm">
+                        <!-- Popolato da admin.js -->
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -99,15 +127,19 @@
                     <option value="private">🔒 Messaggio Privato Istruttore</option>
                 </select>
             </div>
-        
-            <!-- Area dove chat.js inietterà dinamicamente il menu a tendina allieve 'student-selector-wrapper' quando in modalità 'private' -->
-            <div id="chat-messages-container" class="h-64 overflow-y-auto space-y-3 p-2 bg-brand-dark/50 rounded-2xl border border-brand-border">
+
+            <!-- Contenitore iniettato da chat.js per scegliere la specifica allieva nella chat privata -->
+            <div id="student-selector-wrapper" class="hidden"></div>
+
+            <!-- Area Messaggi -->
+            <div id="chat-messages-container" class="h-64 overflow-y-auto space-y-3 p-3 bg-brand-dark/50 rounded-2xl border border-brand-border">
                 <!-- Messaggi popolati da chat.js -->
             </div>
-        
+
             <!-- Form Invio -->
             <form id="chat-form" class="flex gap-2">
-                <input type="text" id="chat-input" placeholder="Scrivi un messaggio..." required 
+                <label for="chat-input" class="sr-only">Scrivi un messaggio</label>
+                <input type="text" id="chat-input" placeholder="Scrivi un messaggio..." required autocomplete="off"
                     class="flex-grow bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-brand-cyan">
                 <button type="submit" class="btn-gradient text-black font-black px-5 py-2.5 rounded-xl text-xs uppercase hover:opacity-90 transition">
                     <i class="fa-solid fa-paper-plane"></i>
@@ -130,9 +162,10 @@
                 </div>
             </div>
         </div>
-        
+
     </main>
 
+    <!-- SCRIPT APPLICATION LOGIC -->
     <script src="../js/config.js"></script>
     <script src="../js/chat.js"></script>
     <script src="../js/admin.js"></script>
