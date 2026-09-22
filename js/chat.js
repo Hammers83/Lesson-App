@@ -60,7 +60,7 @@ async function initChat(userProfile) {
     isChatInitialized = true;
 }
 
-// Genera il menu a tendina per l'istruttore in chat privata
+/*// Genera il menu a tendina per l'istruttore in chat privata
 async function renderStudentSelector() {
     const sb = window.supabaseClient;
     const chatContainer = document.getElementById('chat-messages-container');
@@ -99,6 +99,62 @@ async function renderStudentSelector() {
                     ${s.nome \vert{}\vert{} ''}${s.cognome || 'Allieva'}
                 </option>
             `).join('')}
+        </select>
+    `;
+
+    const studentSelect = document.getElementById('student-chat-select');
+    if (studentSelect) {
+        studentSelect.onchange = (e) => {
+            selectedStudentId = e.target.value;
+            loadMessages();
+        };
+    }
+}*/
+
+// Genera il menu a tendina per l'istruttore in chat privata
+async function renderStudentSelector() {
+    const sb = window.supabaseClient;
+    const chatContainer = document.getElementById('chat-messages-container');
+    if (!chatContainer) return;
+
+    let selectorContainer = document.getElementById('student-selector-wrapper');
+    if (!selectorContainer) {
+        selectorContainer = document.createElement('div');
+        selectorContainer.id = 'student-selector-wrapper';
+        selectorContainer.className = 'mb-3 p-2 bg-brand-card rounded-xl border border-brand-border flex items-center justify-between gap-2';
+        chatContainer.parentNode.insertBefore(selectorContainer, chatContainer);
+    }
+
+    const { data: students, error } = await sb
+        .from('profiles')
+        .select('id, nome, cognome')
+        .eq('is_admin', false)
+        .order('nome', { ascending: true });
+
+    if (error || !students || students.length === 0) {
+        selectorContainer.innerHTML = `<span class="text-xs text-gray-400">Nessuna allieva trovata.</span>`;
+        return;
+    }
+
+    if (!selectedStudentId && students.length > 0) {
+        selectedStudentId = students[0].id;
+    }
+
+    // Ricostruzione pulita della stringa HTML del select
+    let optionsHTML = '';
+    for (let i = 0; i < students.length; i++) {
+        const s = students[i];
+        const isSelected = s.id === selectedStudentId ? 'selected' : '';
+        const nomeCompleto = (s.nome || '') + ' ' + (s.cognome || 'Allieva');
+        optionsHTML += `<option value="${s.id}" ${isSelected}>${nomeCompleto}</option>`;
+    }
+
+    selectorContainer.innerHTML = `
+        <label class="text-xs font-bold text-brand-cyan uppercase flex items-center gap-1">
+            <i class="fa-solid fa-user"></i> Chat con:
+        </label>
+        <select id="student-chat-select" class="flex-grow bg-brand-dark border border-brand-border text-white text-xs rounded-lg p-2 focus:outline-none focus:border-brand-cyan">
+            ${optionsHTML}
         </select>
     `;
 
