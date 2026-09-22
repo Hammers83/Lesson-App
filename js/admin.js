@@ -1,6 +1,7 @@
 let currentSessionData = null;
 let chartPresenzeInstance = null;
 let chartCertificatiInstance = null;
+let lessonsData = [];
 
 // Gestore globale del client Supabase
 const getSupabase = () => window.supabaseClient || window.supabase;
@@ -14,6 +15,25 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+// Converte il valore dall'input datetime-local in una stringa ISO con fuso orario locale
+function formatISOWithTimezone(datetimeLocalValue) {
+    if (!datetimeLocalValue) return null;
+    const date = new Date(datetimeLocalValue);
+    return date.toISOString();
+}
+
+// Formatta una data ISO nel formato YYYY-MM-DDTHH:mm per riempire un input datetime-local
+function formatDatetimeLocal(isoString) {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -34,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initChat(currentSessionData.profile);
     }
 
-    // Gestione Eventi Modale Creazione Lezione
+    // Gestione Eventi Modali
     setupModalEvents();
 });
 
@@ -49,23 +69,37 @@ function setInstructorName(profile) {
 }
 
 function setupModalEvents() {
-    const modal = document.getElementById('modal-create-lesson');
-    const openBtn = document.getElementById('btn-open-create-modal');
-    const closeBtn = document.getElementById('btn-close-modal');
-    const cancelBtn = document.getElementById('btn-cancel-modal');
-    const lessonForm = document.getElementById('form-create-lesson');
+    // Modal Creazione
+    const modalCreate = document.getElementById('modal-create-lesson');
+    const openCreateBtn = document.getElementById('btn-open-create-modal');
+    const closeCreateBtn = document.getElementById('btn-close-modal');
+    const cancelCreateBtn = document.getElementById('btn-cancel-modal');
+    const createForm = document.getElementById('form-create-lesson');
 
-    const openModal = () => modal && modal.classList.remove('hidden');
-    const closeModal = () => modal && modal.classList.add('hidden');
+    if (openCreateBtn) openCreateBtn.addEventListener('click', () => modalCreate?.classList.remove('hidden'));
+    if (closeCreateBtn) closeCreateBtn.addEventListener('click', () => modalCreate?.classList.add('hidden'));
+    if (cancelCreateBtn) cancelCreateBtn.addEventListener('click', () => modalCreate?.classList.add('hidden'));
 
-    if (openBtn) openBtn.addEventListener('click', openModal);
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-
-    if (lessonForm) {
-        lessonForm.addEventListener('submit', async (e) => {
+    if (createForm) {
+        createForm.addEventListener('submit', async (e) => {
             await handleCreateLesson(e);
-            closeModal();
+            modalCreate?.classList.add('hidden');
+        });
+    }
+
+    // Modal Modifica
+    const modalEdit = document.getElementById('modal-edit-lesson');
+    const closeEditBtn = document.getElementById('btn-close-edit-modal');
+    const cancelEditBtn = document.getElementById('btn-cancel-edit-modal');
+    const editForm = document.getElementById('form-edit-lesson');
+
+    if (closeEditBtn) closeEditBtn.addEventListener('click', () => modalEdit?.classList.add('hidden'));
+    if (cancelEditBtn) cancelEditBtn.addEventListener('click', () => modalEdit?.classList.add('hidden'));
+
+    if (editForm) {
+        editForm.addEventListener('submit', async (e) => {
+            await handleUpdateLesson(e);
+            modalEdit?.classList.add('hidden');
         });
     }
 }
@@ -175,6 +209,8 @@ async function loadAdminLessons() {
         return;
     }
 
+    lessonsData = lessons;
+
     if (lessons.length === 0) {
         container.innerHTML = `<p class="text-xs text-gray-400 col-span-2">Nessuna lezione creata.</p>`;
         return;
@@ -188,15 +224,20 @@ async function loadAdminLessons() {
         const iscritti = lesson.bookings ? lesson.bookings.map(b => b.profiles).filter(Boolean) : [];
 
         return `
-            <div class="bg-brand-dark p-5 rounded-2xl border border-brand-border space-y-3">
-                <div class="flex justify-between items-center border-b border-brand-border pb-2">
+            <div class="bg-brand-dark p-5 rounded-2xl border border-brand-border space-y-3 relative">
+                <div class="flex justify-between items-start border-b border-brand-border pb-2">
                     <div>
                         <h4 class="text-base font-black text-white">${escapeHtml(lesson.title || 'Lezione')}</h4>
                         <span class="text-xs text-brand-cyan font-bold">${formattedDate} - ${formattedTime}</span>
                     </div>
-                    <span class="text-xs bg-brand-card px-2.5 py-1 rounded-lg text-white font-bold border border-brand-border">
-                        ${iscritti.length} / ${lesson.capacity || 20} Presenze
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openEditLessonModal('${lesson.id}')" class="px-2.5 py-1 bg-brand-card hover:bg-brand-cyan hover:text-black text-brand-cyan border border-brand-cyan/40 text-xs font-bold rounded-lg transition flex items-center gap-1">
+                            <i class="fa-solid fa-pen"></i> Modifica
+                        </button>
+                        <span class="text-xs bg-brand-card px-2.5 py-1 rounded-lg text-white font-bold border border-brand-border">
+                            ${iscritti.length} / ${lesson.capacity || 20}
+                        </span>
+                    </div>
                 </div>
 
                 <div>
@@ -219,16 +260,16 @@ async function loadAdminLessons() {
     }).join('');
 }
 
-window.downloadCert = async function(path) {
-    const sb = getSupabase();
-    const { data, error } = await sb.storage.from('certificates').createSignedUrl(path, 60);
-    if (error) {
-        alert("Errore nel download del certificato: " + error.message);
-        return;
-    }
-    if (data && data.signedUrl) {
-        window.open(data.signedUrl, '_blank');
-    }
+window.openEditLessonModal = function(lessonId) {
+    const lesson = lessonsData.find(l => l.id === lessonId);
+    if (!lesson) return;
+
+    document.getElementById('edit-lesson-id').value = lesson.id;
+    document.getElementById('edit-lesson-title').value = lesson.title;
+    document.getElementById('edit-lesson-datetime').value = formatDatetimeLocal(lesson.datetime);
+    document.getElementById('edit-lesson-capacity').value = lesson.capacity;
+
+    document.getElementById('modal-edit-lesson')?.classList.remove('hidden');
 };
 
 async function handleCreateLesson(e) {
@@ -240,7 +281,7 @@ async function handleCreateLesson(e) {
     const capacityInput = document.getElementById('lesson-capacity');
 
     const title = titleInput.value.trim();
-    const datetime = datetimeInput.value;
+    const datetime = formatISOWithTimezone(datetimeInput.value);
     const capacity = parseInt(capacityInput.value, 10);
 
     if (!title || !datetime || isNaN(capacity)) {
@@ -262,6 +303,49 @@ async function handleCreateLesson(e) {
         await loadAdminDashboard();
     }
 }
+
+async function handleUpdateLesson(e) {
+    e.preventDefault();
+    const sb = getSupabase();
+
+    const lessonId = document.getElementById('edit-lesson-id').value;
+    const title = document.getElementById('edit-lesson-title').value.trim();
+    const datetime = formatISOWithTimezone(document.getElementById('edit-lesson-datetime').value);
+    const capacity = parseInt(document.getElementById('edit-lesson-capacity').value, 10);
+
+    if (!lessonId || !title || !datetime || isNaN(capacity)) {
+        alert("Compila tutti i campi correttamente.");
+        return;
+    }
+
+    const { error } = await sb
+        .from('lessons')
+        .update({
+            title: title,
+            datetime: datetime,
+            capacity: capacity
+        })
+        .eq('id', lessonId);
+
+    if (error) {
+        alert("Errore durante l'aggiornamento della lezione: " + error.message);
+    } else {
+        alert("Lezione aggiornata con successo!");
+        await loadAdminDashboard();
+    }
+}
+
+window.downloadCert = async function(path) {
+    const sb = getSupabase();
+    const { data, error } = await sb.storage.from('certificates').createSignedUrl(path, 60);
+    if (error) {
+        alert("Errore nel download del certificato: " + error.message);
+        return;
+    }
+    if (data && data.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+    }
+};
 
 async function renderAnalytics() {
     if (typeof Chart === 'undefined') {
