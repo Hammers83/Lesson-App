@@ -40,7 +40,7 @@ async function initChat(userProfile) {
         .subscribe();
 }
 
-// Carica la cronologia messaggi
+/* Carica la cronologia messaggi
 async function loadMessages() {
     const sb = window.supabaseClient;
     const container = document.getElementById('chat-messages-container');
@@ -66,6 +66,46 @@ async function loadMessages() {
 
     container.innerHTML = '';
     if (messages.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">Nessun messaggio presente in questo canale.</p>`;
+        return;
+    }
+
+    messages.forEach(msg => appendSingleMessage(msg));
+    container.scrollTop = container.scrollHeight;
+}*/
+
+async function loadMessages() {
+    const sb = window.supabaseClient;
+    const container = document.getElementById('chat-messages-container');
+    if (!container) return;
+
+    container.innerHTML = `<p class="text-xs text-center text-gray-500 py-4">Caricamento messaggi...</p>`;
+
+    // Recupera messaggi includendo i dati del mittente dalla tabella profiles
+    let query = sb.from('messages')
+        .select('*, profiles:sender_id(nome, cognome, is_admin)')
+        .order('created_at', { ascending: true });
+
+    if (currentChatType === 'group') {
+        // Messaggi di gruppo (receiver_id è NULL)
+        query = query.is('receiver_id', null);
+    } else {
+        // Messaggi privati:
+        // Se chi guarda è l'istruttore, carica i messaggi scambiati tra lui e qualsiasi allieva
+        // Se è un'allieva, carica i messaggi tra lei e l'istruttore
+        query = query.or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+    }
+
+    const { data: messages, error } = await query;
+
+    if (error) {
+        console.error("Errore caricamento messaggi:", error);
+        container.innerHTML = `<p class="text-xs text-brand-pink text-center">Errore nel caricamento dei messaggi.</p>`;
+        return;
+    }
+
+    container.innerHTML = '';
+    if (!messages || messages.length === 0) {
         container.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">Nessun messaggio presente in questo canale.</p>`;
         return;
     }
