@@ -15,7 +15,7 @@ async function initChat(userProfile) {
         if (admin) instructorId = admin.id;
     }
 
-    // Gestione cambio canale (Gruppo / Privato)
+    // Gestione cambio canale (Gruppo / Privato) - OPZIONE 2 INTEGRATA
     const selectEl = document.getElementById('chat-type-select');
     if (selectEl) {
         selectEl.addEventListener('change', async (e) => {
@@ -98,6 +98,9 @@ async function renderStudentSelector() {
         loadMessages();
     });
 }
+
+// Alias per compatibilità con chiamata esplicita loadStudentsChatList()
+window.loadStudentsChatList = renderStudentSelector;
 
 // Nasconde il selettore se si torna alla chat di gruppo
 function hideStudentSelector() {
