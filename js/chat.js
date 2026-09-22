@@ -232,3 +232,28 @@ async function handleSendMessage(e) {
         alert("Errore nell'invio del messaggio: " + error.message);
     }
 }
+
+// Auto-inizializzazione automatica al caricamento della pagina
+document.addEventListener('DOMContentLoaded', async () => {
+    // Verifica che il client Supabase sia pronto
+    if (!window.supabaseClient || !window.supabaseClient.auth) return;
+
+    try {
+        const sb = window.supabaseClient;
+        const { data: { user } } = await sb.auth.getUser();
+
+        if (user) {
+            const { data: profile } = await sb
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (profile) {
+                await initChat(profile);
+            }
+        }
+    } catch (err) {
+        console.error("Errore durante l'auto-inizializzazione della chat:", err);
+    }
+});
