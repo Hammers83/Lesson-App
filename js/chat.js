@@ -11,12 +11,12 @@ async function initChat(profile) {
     setupChatListeners();
     await loadChatMessages();
     
-    // Avvia l'aggiornamento automatico ogni 3 secondi per sincronizzare i messaggi
+    // Aggiornamento automatico ogni 3 secondi
     if (window.chatInterval) clearInterval(window.chatInterval);
     window.chatInterval = setInterval(loadChatMessages, 3000);
 }
 
-// Event Listeners
+// Gestione eventi UI
 function setupChatListeners() {
     const chatTypeSelect = document.getElementById('chat-type-select');
     const studentWrapper = document.getElementById('student-selector-wrapper');
@@ -53,7 +53,7 @@ function setupChatListeners() {
     }
 }
 
-// Carica elenco allieve per l'Admin
+// Tendina allieve per l'Admin
 async function loadStudentsDropdown() {
     const select = document.getElementById('student-private-select');
     if (!select) return;
@@ -78,7 +78,7 @@ async function loadStudentsDropdown() {
     }
 }
 
-// Carica messaggi
+// Lettura dei messaggi
 async function loadChatMessages() {
     const container = document.getElementById('chat-messages-container');
     if (!container || !window.currentUserProfile) return;
@@ -96,7 +96,7 @@ async function loadChatMessages() {
         let messages = [];
 
         if (!isPrivate) {
-            // Chat di gruppo
+            // Chat Pubblica / Gruppo
             const { data, error } = await sb
                 .from('messages')
                 .select('*')
@@ -107,7 +107,7 @@ async function loadChatMessages() {
             messages = data || [];
 
         } else {
-            // Chat privata
+            // Chat Privata
             const myId = window.currentUserProfile.id;
 
             const { data, error } = await sb
@@ -130,7 +130,7 @@ async function loadChatMessages() {
             }
         }
 
-        // Recupera i dati dei mittenti
+        // Mappa i nomi dei mittenti
         let profilesMap = {};
         if (messages.length > 0) {
             const senderIds = [...new Set(messages.map(m => m.sender_id))];
@@ -147,7 +147,7 @@ async function loadChatMessages() {
     }
 }
 
-// Render dei messaggi
+// Display messaggi a schermo
 function renderMessages(messages, profilesMap = {}) {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
@@ -203,7 +203,7 @@ async function sendChatMessage() {
                 }
                 targetRecipientId = window.selectedRecipientId;
             } else {
-                // Recupera l'ID dell'Admin se a inviare è l'allieva
+                // Recupera l'ID dell'Admin
                 const { data: admin } = await sb.from('profiles').select('id').eq('is_admin', true).limit(1).maybeSingle();
                 if (admin) targetRecipientId = admin.id;
             }
