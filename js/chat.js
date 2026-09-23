@@ -1,3 +1,4 @@
+// Variable globali per la chat
 let currentChatType = 'group';
 let selectedRecipientId = null;
 let currentUserProfile = null;
@@ -14,17 +15,56 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
+// Inizializzazione chiamata da admin.js e student.js
 async function initChat(profile) {
     currentUserProfile = profile;
-    
-    if (profile && profile.is_admin) {
-        await loadStudentsDropdown();
-    }
-    
     setupChatListeners();
     await loadChatMessages();
 }
 
+// Gestione eventi chat
+function setupChatListeners() {
+    const chatTypeSelect = document.getElementById('chat-type-select');
+    const studentSelectWrapper = document.getElementById('student-selector-wrapper');
+    const studentSelect = document.getElementById('student-private-select');
+    const chatForm = document.getElementById('chat-form');
+
+    if (chatTypeSelect) {
+        // Quando l'utente cambia tipo chat
+        chatTypeSelect.onclick = null; // pulizia
+        chatTypeSelect.onchange = async (e) => {
+            currentChatType = e.target.value;
+
+            if (currentChatType === 'private') {
+                if (currentUserProfile && currentUserProfile.is_admin) {
+                    // Mostra la tendina se siamo admin
+                    if (studentSelectWrapper) studentSelectWrapper.classList.remove('hidden');
+                    await loadStudentsDropdown();
+                }
+            } else {
+                if (studentSelectWrapper) studentSelectWrapper.classList.add('hidden');
+                selectedRecipientId = null;
+            }
+            await loadChatMessages();
+        };
+    }
+
+    if (studentSelect) {
+        studentSelect.onchange = async (e) => {
+            selectedRecipientId = e.target.value || null;
+            await loadChatMessages();
+        };
+    }
+
+    if (chatForm) {
+        chatForm.onsubmit = async (e) => {
+            e.preventDefault();
+            await sendChatMessage();
+        };
+    }
+}
+
+// Carica le allieve nella tendina (solo per Admin)
 async function loadStudentsDropdown() {
     const select = document.getElementById('student-private-select');
     if (!select) return;
@@ -37,89 +77,56 @@ async function loadStudentsDropdown() {
         .order('nome', { ascending: true });
 
     if (error) {
-        console.error("Errore caricamento lista allieve per chat:", error);
+        console.error("Errore caricamento lista allieve:", error);
         return;
     }
 
-    select.innerHTML = '<option value="">-- Seleziona un\'allieva --</option>' +
-        (students || []).map(s => `<option value="${s.id}">${escapeHtml(s.nome)} ${escapeHtml(s.cognome)}</option>`).join('');
+    let options = '<option value="">-- Seleziona un\'allieva --</option>';
+    if (students) {
+        options += students.map(s => `<option value="${s.id}">${escapeHtml(s.nome)} ${escapeHtml(s.cognome)}</option>`).join('');
+    }
+    select.innerHTML = options;
 }
 
-function setupChatListeners() {
-    const chatTypeSelect = document.getElementById('chat-type-select');
-    const studentWrapper = document.getElementById('student-selector-wrapper');
-    const studentSelect = document.getElementById('student-private-select');
-    const chatForm = document.getElementById('chat-form');
-
-    if (chatTypeSelect) {
-        chatTypeSelect.addEventListener('change', async (e) => {
-            currentChatType = e.target.value;
-            
-            if (currentChatType === 'private') {
-                if (currentUserProfile && currentUserProfile.is_admin) {
-                    studentWrapper?.classList.remove('hidden');
-                } else {
-                    studentWrapper?.classList.add('hidden');
-                }
-            } else {
-                studentWrapper?.classList.add('hidden');
-                selectedRecipientId = null;
-            }
-            
-            await loadChatMessages();
-        });
-    }
-
-    if (studentSelect) {
-        studentSelect.addEventListener('change', async (e) => {
-            selectedRecipientId = e.target.value || null;
-            await loadChatMessages();
-        });
-    }
-
-    if (chatForm) {
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await sendChatMessage();
-        });
-    }
-}
-
+// Carica i messaggi
 async function loadChatMessages() {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
 
     const sb = getSupabase();
 
+    // Se admin è in privato ma non ha selezionato l'allieva
     if (currentChatType === 'private' && currentUserProfile?.is_admin && !selectedRecipientId) {
-        container.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">Seleziona un'allieva dal menu sopra per vedere la conversazione privata.</p>`;
+        container.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">Seleziona un'allieva dal menu a tendina per vedere la conversazione.</p>`;
         return;
     }
 
-    let query = sb.from('messages').select('*, profiles:sender_id(nome, cognome, is_admin)');
+    try {
+        let query = sb.from('messages').select('*, profiles:sender_id(nome, cognome, is_admin)');
 
-    if (currentChatType === 'group') {
-        query = query.eq('is_private', false);
-    } else {
-        query = query.eq('is_private', true);
-        if (currentUserProfile?.is_admin) {
-            query = query.or(`and(sender_id.eq.${currentUserProfile.id},recipient_id.eq.${selectedRecipientId}),and(sender_id.eq.${selectedRecipientId},recipient_id.eq.${currentUserProfile.id})`);
+        if (currentChatType === 'group') {
+            query = query.eq('is_private', false);
         } else {
-            query = query.or(`sender_id.eq.${currentUserProfile.id},recipient_id.eq.${currentUserProfile.id}`);
+            query = query.eq('is_private', true);
+            if (currentUserProfile?.is_admin) {
+                query = query.or(`and(sender_id.eq.${currentUserProfile.id},recipient_id.eq.${selectedRecipientId}),and(sender_id.eq.${selectedRecipientId},recipient_id.eq.${currentUserProfile.id})`);
+            } else {
+                query = query.or(`sender_id.eq.${currentUserProfile.id},recipient_id.eq.${currentUserProfile.id}`);
+            }
         }
+
+        const { data: messages, error } = await query.order('created_at', { ascending: true });
+
+        if (error) throw error;
+        renderMessages(messages);
+
+    } catch (err) {
+        console.error("Errore chat:", err);
+        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-6">Nessun messaggio presente.</p>`;
     }
-
-    const { data: messages, error } = await query.order('created_at', { ascending: true });
-
-    if (error) {
-        console.error("Errore recupero messaggi:", error);
-        container.innerHTML = `<p class="text-xs text-brand-pink text-center py-6">Errore nel caricamento dei messaggi.</p>`;
-        return;
-    }
-
-    renderMessages(messages);
 }
 
+// Render dei messaggi a schermo
 function renderMessages(messages) {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
@@ -130,7 +137,7 @@ function renderMessages(messages) {
     }
 
     container.innerHTML = messages.map(msg => {
-        const isMe = msg.sender_id === currentUserProfile.id;
+        const isMe = msg.sender_id === currentUserProfile?.id;
         const senderName = isMe ? 'Tu' : (msg.profiles ? `${msg.profiles.nome} ${msg.profiles.cognome}` : 'Utente');
         const time = new Date(msg.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
@@ -151,13 +158,14 @@ function renderMessages(messages) {
     container.scrollTop = container.scrollHeight;
 }
 
+// Invio messaggio
 async function sendChatMessage() {
     const input = document.getElementById('chat-input');
     const text = input?.value.trim();
     if (!text) return;
 
     if (currentChatType === 'private' && currentUserProfile?.is_admin && !selectedRecipientId) {
-        alert("Seleziona un'allieva a cui inviare il messaggio.");
+        alert("Seleziona prima un'allieva a cui inviare il messaggio!");
         return;
     }
 
@@ -173,7 +181,7 @@ async function sendChatMessage() {
     const { error } = await sb.from('messages').insert([payload]);
 
     if (error) {
-        alert("Errore invio messaggio: " + error.message);
+        alert("Errore nell'invio del messaggio: " + error.message);
     } else {
         input.value = '';
         await loadChatMessages();
