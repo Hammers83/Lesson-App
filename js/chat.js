@@ -1,11 +1,14 @@
-// Variable globali per la chat
+// Variabili globali per la chat
 window.currentChatType = 'group';
 window.selectedRecipientId = null;
 window.currentUserProfile = null;
 
-// Usa getSupabase se già definito da admin.js, altrimenti lo definisce in modo sicuro
-if (typeof window.getSupabase !== 'function') {
-    window.getSupabase = () => window.supabaseClient || window.supabase;
+// Recupera Supabase in modo sicuro
+function getChatSupabase() {
+    if (typeof window.getSupabase === 'function') {
+        return window.getSupabase();
+    }
+    return window.supabaseClient || window.supabase;
 }
 
 function escapeHtml(str) {
@@ -67,7 +70,7 @@ async function loadStudentsDropdown() {
     if (!select) return;
 
     try {
-        const sb = window.getSupabase();
+        const sb = getChatSupabase();
         const { data: students, error } = await sb
             .from('profiles')
             .select('id, nome, cognome')
@@ -82,7 +85,7 @@ async function loadStudentsDropdown() {
         }
         select.innerHTML = options;
     } catch (err) {
-        console.error("Errore caricamento allieve:", err);
+        console.error("Errore caricamento lista allieve:", err);
     }
 }
 
@@ -90,8 +93,14 @@ async function loadChatMessages() {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
 
-    const sb = window.getSupabase();
+    if (!window.currentUserProfile) {
+        console.warn("Profilo utente non ancora pronto per la chat.");
+        return;
+    }
 
+    const sb = getChatSupabase();
+
+    // Se l'admin è in modalità privata e non ha ancora selezionato l'allieva
     if (window.currentChatType === 'private' && window.currentUserProfile?.is_admin && !window.selectedRecipientId) {
         container.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">Seleziona un'allieva dal menu in alto per vedere la conversazione.</p>`;
         return;
@@ -101,24 +110,36 @@ async function loadChatMessages() {
         let query = sb.from('messages').select('*, profiles:sender_id(nome, cognome, is_admin)');
 
         if (window.currentChatType === 'group') {
+            // Chat di gruppo per tutti
             query = query.eq('is_private', false);
         } else {
+            // Chat privata
             query = query.eq('is_private', true);
+
+            const myId = window.currentUserProfile.id;
+
             if (window.currentUserProfile?.is_admin) {
-                query = query.or(`and(sender_id.eq.${window.currentUserProfile.id},recipient_id.eq.${window.selectedRecipientId}),and(sender_id.eq.${window.selectedRecipientId},recipient_id.eq.${window.currentUserProfile.id})`);
+                // Admin: legge i messaggi scambiati esclusivamente con l'allieva selezionata
+                const otherId = window.selectedRecipientId;
+                query = query.or(`and(sender_id.eq.${myId},recipient_id.eq.${otherId}),and(sender_id.eq.${otherId},recipient_id.eq.${myId})`);
             } else {
-                query = query.or(`sender_id.eq.${window.currentUserProfile.id},recipient_id.eq.${window.currentUserProfile.id}`);
+                // Allieva: legge i messaggi privati in cui è mittente o destinatario
+                query = query.or(`sender_id.eq.${myId},recipient_id.eq.${myId}`);
             }
         }
 
         const { data: messages, error } = await query.order('created_at', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+            console.error("Errore Supabase durante il recupero dei messaggi:", error);
+            throw error;
+        }
+
         renderMessages(messages);
 
     } catch (err) {
         console.error("Errore recupero messaggi:", err);
-        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-6">Nessun messaggio presente.</p>`;
+        container.innerHTML = `<p class="text-xs text-brand-pink text-center py-6">Errore nel caricamento dei messaggi.</p>`;
     }
 }
 
@@ -127,7 +148,7 @@ function renderMessages(messages) {
     if (!container) return;
 
     if (!messages || messages.length === 0) {
-        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-6">Nessun messaggio presente.</p>`;
+        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-6">Nessun messaggio presente in questa chat.</p>`;
         return;
     }
 
@@ -137,7 +158,7 @@ function renderMessages(messages) {
         const time = new Date(msg.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
         return `
-            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} my-1">
+            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} my-1.5">
                 <span class="text-[10px] text-gray-400 mb-0.5 px-1">${escapeHtml(senderName)} - ${time}</span>
                 <div class="max-w-[80%] px-3.5 py-2 rounded-2xl text-xs font-medium ${
                     isMe 
@@ -158,13 +179,20 @@ async function sendChatMessage() {
     const text = input?.value.trim();
     if (!text) return;
 
+    if (!window.currentUserProfile) {
+        alert("Profilo utente non caricato. Ricarica la pagina.");
+        return;
+    }
+
     if (window.currentChatType === 'private' && window.currentUserProfile?.is_admin && !window.selectedRecipientId) {
         alert("Seleziona prima un'allieva a cui inviare il messaggio!");
         return;
     }
 
     try {
-        const sb = window.getSupabase();
+        const sb = getChatSupabase();
+
+        // Costruzione del payload senza parametri undefined
         const payload = {
             sender_id: window.currentUserProfile.id,
             content: text,
@@ -172,12 +200,17 @@ async function sendChatMessage() {
             recipient_id: (window.currentChatType === 'private' && window.currentUserProfile?.is_admin) ? window.selectedRecipientId : null
         };
 
-        const { error } = await sb.from('messages').insert([payload]);
-        if (error) throw error;
+        const { data, error: insertError } = await sb.from('messages').insert([payload]).select();
+
+        if (insertError) {
+            console.error("Errore durante l'inserimento del messaggio:", insertError);
+            throw insertError;
+        }
 
         input.value = '';
         await loadChatMessages();
+
     } catch (err) {
-        alert("Errore nell'invio del messaggio: " + error.message);
+        alert("Errore nell'invio del messaggio: " + (err.message || err));
     }
 }
