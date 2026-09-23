@@ -1,26 +1,22 @@
 // Variable per gestire la selezione dell'allieva (Admin)
 window.selectedRecipientId = null;
 
-// Utility per leggere l'istanza Supabase già presente nel tuo progetto
 function getSb() {
     return window.supabaseClient || window.supabase;
 }
 
-// Inizializzazione della chat (chiamata da admin.js e student.js)
 async function initChat(profile) {
     window.currentUserProfile = profile;
     setupChatListeners();
     await loadChatMessages();
 }
 
-// Gestione degli eventi di input e cambi menu
 function setupChatListeners() {
     const chatTypeSelect = document.getElementById('chat-type-select');
     const studentWrapper = document.getElementById('student-selector-wrapper');
     const studentSelect = document.getElementById('student-private-select');
     const chatForm = document.getElementById('chat-form');
 
-    // Cambiamento tipo chat (Gruppo / Privata)
     if (chatTypeSelect) {
         chatTypeSelect.onchange = async (e) => {
             const isPrivate = (e.target.value === 'private');
@@ -36,7 +32,6 @@ function setupChatListeners() {
         };
     }
 
-    // Selezione allieva dalla tendina
     if (studentSelect) {
         studentSelect.onchange = async (e) => {
             window.selectedRecipientId = e.target.value || null;
@@ -44,7 +39,6 @@ function setupChatListeners() {
         };
     }
 
-    // Invio del form messaggi
     if (chatForm) {
         chatForm.onsubmit = async (e) => {
             e.preventDefault();
@@ -53,18 +47,22 @@ function setupChatListeners() {
     }
 }
 
-// Carica l'elenco delle allieve nella tendina (solo per Admin)
 async function loadStudentsDropdown() {
     const select = document.getElementById('student-private-select');
     if (!select) return;
 
     try {
         const sb = getSb();
-        const { data: students } = await sb
+        const { data: students, error } = await sb
             .from('profiles')
             .select('id, nome, cognome')
             .eq('is_admin', false)
             .order('nome', { ascending: true });
+
+        if (error) {
+            console.error("Errore recupero allieve:", error);
+            return;
+        }
 
         let options = '<option value="">-- Seleziona un\'allieva --</option>';
         if (students && students.length > 0) {
@@ -76,7 +74,7 @@ async function loadStudentsDropdown() {
     }
 }
 
-// Caricamento dei messaggi (Query semplice senza JOIN o costrutti SQL complessi)
+// Caricamento messaggi pulito senza query complesse che generano HTTP 400
 async function loadChatMessages() {
     const container = document.getElementById('chat-messages-container');
     if (!container || !window.currentUserProfile) return;
@@ -84,42 +82,54 @@ async function loadChatMessages() {
     const chatTypeSelect = document.getElementById('chat-type-select');
     const isPrivate = chatTypeSelect ? (chatTypeSelect.value === 'private') : false;
 
-    // Se admin è in chat privata ma non ha ancora scelto l'allieva
     if (isPrivate && window.currentUserProfile.is_admin && !window.selectedRecipientId) {
-        container.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">Seleziona un'allieva dal menu in alto per vedere la conversazione.</p>`;
+        container.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">Seleziona un'allieva dal menu a tendina per vedere la conversazione.</p>`;
         return;
     }
 
     try {
         const sb = getSb();
-        let query = sb.from('messages').select('*');
+        let messages = [];
 
         if (!isPrivate) {
-            // Chat di gruppo
-            query = query.eq('is_private', false);
-        } else {
-            // Chat privata
-            query = query.eq('is_private', true);
+            // 1. Chat di gruppo: prende semplicemente tutti i messaggi NON privati
+            const { data, error } = await sb
+                .from('messages')
+                .select('*')
+                .eq('is_private', false)
+                .order('created_at', { ascending: true });
 
+            if (error) throw error;
+            messages = data || [];
+
+        } else {
+            // 2. Chat privata: recupera i messaggi privati in cui sono coinvolto
+            const myId = window.currentUserProfile.id;
+
+            const { data, error } = await sb
+                .from('messages')
+                .select('*')
+                .eq('is_private', true)
+                .or(`sender_id.eq.${myId},recipient_id.eq.${myId}`)
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+
+            // Se sono Admin, filtro in locale per la sola allieva selezionata (evita bug sintassi SQL)
             if (window.currentUserProfile.is_admin) {
-                // Admin vede solo i messaggi scambiati con l'allieva selezionata
-                const myId = window.currentUserProfile.id;
                 const studentId = window.selectedRecipientId;
-                query = query.or(`and(sender_id.eq.${myId},recipient_id.eq.${studentId}),and(sender_id.eq.${studentId},recipient_id.eq.${myId})`);
+                messages = (data || []).filter(m => 
+                    (m.sender_id === myId && m.recipient_id === studentId) ||
+                    (m.sender_id === studentId && m.recipient_id === myId)
+                );
             } else {
-                // Allieva vede tutti i suoi messaggi privati
-                const myId = window.currentUserProfile.id;
-                query = query.or(`sender_id.eq.${myId},recipient_id.eq.${myId}`);
+                messages = data || [];
             }
         }
 
-        const { data: messages, error } = await query.order('created_at', { ascending: true });
-
-        if (error) throw error;
-
-        // Recupero rapido dei nomi mittenti senza JOIN
+        // Recupera i nomi dei mittenti
         let profilesMap = {};
-        if (messages && messages.length > 0) {
+        if (messages.length > 0) {
             const senderIds = [...new Set(messages.map(m => m.sender_id))];
             const { data: profiles } = await sb.from('profiles').select('id, nome, cognome').in('id', senderIds);
             if (profiles) {
@@ -130,13 +140,12 @@ async function loadChatMessages() {
         renderMessages(messages, profilesMap);
 
     } catch (err) {
-        console.error("Errore lettura messaggi:", err);
-        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-6">Impossibile caricare i messaggi.</p>`;
+        console.error("Errore lettura messaggi Supabase:", err);
+        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-6">Errore nel caricamento dei messaggi (Codice Errore DB).</p>`;
     }
 }
 
-// Rendering a schermo
-function renderMessages(messages, profilesMap) {
+function renderMessages(messages, profilesMap = {}) {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
 
@@ -170,7 +179,6 @@ function renderMessages(messages, profilesMap) {
     container.scrollTop = container.scrollHeight;
 }
 
-// Invio messaggio
 async function sendChatMessage() {
     const input = document.getElementById('chat-input');
     const text = input?.value.trim();
