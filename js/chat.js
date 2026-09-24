@@ -10,10 +10,14 @@ async function initChat(profile) {
     window.currentUserProfile = profile;
     setupChatListeners();
     await loadChatMessages();
+    await updateNotificationBadge();
     
     // Aggiornamento automatico ogni 3 secondi
     if (window.chatInterval) clearInterval(window.chatInterval);
-    window.chatInterval = setInterval(loadChatMessages, 3000);
+    window.chatInterval = setInterval(async () => {
+        await loadChatMessages();
+        await updateNotificationBadge();
+    }, 3000);
 }
 
 // Gestione eventi UI
@@ -27,6 +31,7 @@ function setupChatListeners() {
         chatTypeSelect.onchange = async (e) => {
             const isPrivate = (e.target.value === 'private');
 
+            // Solo l'admin deve visualizzare la tendina per selezionare l'allieva
             if (isPrivate && window.currentUserProfile?.is_admin) {
                 if (studentWrapper) studentWrapper.classList.remove('hidden');
                 await loadStudentsDropdown();
@@ -38,7 +43,7 @@ function setupChatListeners() {
         };
     }
 
-    if (studentSelect) {
+    if (studentSelect && window.currentUserProfile?.is_admin) {
         studentSelect.onchange = async (e) => {
             window.selectedRecipientId = e.target.value || null;
             await loadChatMessages();
@@ -203,7 +208,7 @@ async function sendChatMessage() {
                 }
                 targetRecipientId = window.selectedRecipientId;
             } else {
-                // Recupera l'ID dell'Admin
+                // L'allieva assegna in automatico l'ID dell'Admin
                 const { data: admin } = await sb.from('profiles').select('id').eq('is_admin', true).limit(1).maybeSingle();
                 if (admin) targetRecipientId = admin.id;
             }
@@ -225,5 +230,34 @@ async function sendChatMessage() {
 
     } catch (err) {
         alert("Errore durante l'invio del messaggio: " + (err.message || "Errore sconosciuto"));
+    }
+}
+
+// Aggiorna la campanella notifiche in modo sicuro
+async function updateNotificationBadge() {
+    const badge = document.getElementById('notification-badge');
+    if (!badge || !window.currentUserProfile) return;
+
+    try {
+        const sb = getSb();
+        const myId = window.currentUserProfile.id;
+
+        const { data, error } = await sb
+            .from('messages')
+            .select('id')
+            .neq('sender_id', myId)
+            .or(`recipient_id.eq.${myId},is_private.eq.false`);
+
+        if (error) return;
+
+        const count = data ? data.length : 0;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    } catch (e) {
+        // Nessun blocco dell'interfaccia se la campanella non è visibile
     }
 }
